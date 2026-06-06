@@ -1,0 +1,137 @@
+import { jsonData, jsonError } from "@/lib/api";
+import { requireUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+type Appointment = {
+  id: string;
+  status: "PENDING" | "COMING" | "COMPLETED" | "LATE" | "CANCELLED";
+  estimatedWaitMinutes: number;
+  greenCreditEarned: number;
+  co2SavedKg: number;
+  createdAt: string | Date;
+  driver?: { id: string; name: string; email: string; greenPoints: number };
+  vehicle?: { id: string; plateNumber: string; vehicleType: string };
+  port?: { id: string; name: string };
+  timeSlot?: { id: string; startTime: string | Date; endTime: string | Date; congestionLevel: "LOW" | "MEDIUM" | "HIGH"; capacity: number; bookedCount: number };
+};
+
+type TimeSlot = {
+  id: string;
+  startTime: string | Date;
+  endTime: string | Date;
+  capacity: number;
+  bookedCount: number;
+  congestionLevel: "LOW" | "MEDIUM" | "HIGH";
+  estimatedWaitMinutes: number;
+  greenBonus: number;
+  port?: { id: string; name: string };
+};
+
+type GreenCredit = { points: number; appointment?: { co2SavedKg?: number } };
+type Redemption = { id: string };
+type Driver = { id: string; name: string; email: string; greenPoints: number };
+type Activity = { id: string; type: string; message: string; createdAt: string | Date };
+
+const appointmentSelect = {
+  id: true,
+  status: true,
+  estimatedWaitMinutes: true,
+  greenCreditEarned: true,
+  co2SavedKg: true,
+  createdAt: true,
+  driver: { select: { id: true, name: true, email: true, greenPoints: true } },
+  vehicle: { select: { id: true, plateNumber: true, vehicleType: true } },
+  port: { select: { id: true, name: true } },
+  timeSlot: { select: { id: true, startTime: true, endTime: true, congestionLevel: true, capacity: true, bookedCount: true } },
+};
+
+export async function GET() {
+  try {
+    const user = await requireUser();
+    const isDriver = user.role === "DRIVER";
+    const appointmentWhere = isDriver ? { driverId: user.id } : undefined;
+    const userWhere = isDriver ? { userId: user.id } : undefined;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
+
+    const [appointments, credits, redemptions, slots, drivers, activities] = await Promise.all([
+      prisma.appointment.findMany({ where: appointmentWhere, select: appointmentSelect, orderBy: { createdAt: "desc" } }) as Promise<Appointment[]>,
+      prisma.greenCredit.findMany({ where: userWhere, select: { points: true, appointment: { select: { co2SavedKg: true } } } }) as Promise<GreenCredit[]>,
+      prisma.rewardRedemption.findMany({ where: userWhere, select: { id: true } }) as Promise<Redemption[]>,
+      prisma.timeSlot.findMany({
+        where: { startTime: { gte: todayStart, lt: todayEnd } },
+        select: { id: true, startTime: true, endTime: true, capacity: true, bookedCount: true, congestionLevel: true, estimatedWaitMinutes: true, greenBonus: true, port: { select: { id: true, name: true } } },
+        orderBy: { startTime: "asc" },
+      }) as Promise<TimeSlot[]>,
+      isDriver ? Promise.resolve([] as Driver[]) : prisma.user.findMany({ where: { role: "DRIVER" }, select: { id: true, name: true, email: true, greenPoints: true }, orderBy: { greenPoints: "desc" } }) as Promise<Driver[]>,
+      prisma.activityLog.findMany({ where: isDriver ? { actorId: user.id } : undefined, select: { id: true, type: true, message: true, createdAt: true }, orderBy: { createdAt: "desc" } }) as Promise<Activity[]>,
+    ]);
+
+    const completedAppointments = appointments.filter((item) => item.status === "COMPLETED");
+    const todayAppointments = appointments.filter((item) => isSameDay(new Date(item.createdAt), todayStart));
+    const averageWaitMinutes = average(appointments.map((item) => item.estimatedWaitMinutes));
+    const totalCo2SavedKg = sum(appointments.map((item) => item.co2SavedKg));
+    const totalGreenPointsIssued = sum(credits.map((item) => item.points));
+    const lowSlots = slots.filter((slot) => slot.congestionLevel === "LOW").length;
+    const mediumSlots = slots.filter((slot) => slot.congestionLevel === "MEDIUM").length;
+    const highSlots = slots.filter((slot) => slot.congestionLevel === "HIGH").length;
+    const greenSlotRate = slots.length ? Math.round((lowSlots / slots.length) * 100) : 0;
+    const manualMinutesSaved = completedAppointments.length * 13;
+    const waitMinutesSaved = completedAppointments.reduce((total, item) => total + Math.max(0, 50 - item.estimatedWaitMinutes), 0);
+    const costSavingEstimateVnd = Math.round(waitMinutesSaved * 1200 + completedAppointments.length * 14000);
+
+    return jsonData({
+      scope: isDriver ? "DRIVER" : "OPERATIONS",
+      summary: {
+        todayAppointments: todayAppointments.length,
+        totalAppointments: appointments.length,
+        completedAppointments: completedAppointments.length,
+        averageWaitMinutes: Math.round(averageWaitMinutes),
+        totalCo2SavedKg: Number(totalCo2SavedKg.toFixed(1)),
+        totalGreenPointsIssued: isDriver ? user.greenPoints : totalGreenPointsIssued,
+        totalRedemptions: redemptions.length,
+        greenSlotRate,
+        manualMinutesSaved,
+        gateProcessingTargetSeconds: 30,
+        costSavingEstimateVnd,
+      },
+      congestionMix: { LOW: lowSlots, MEDIUM: mediumSlots, HIGH: highSlots, total: slots.length },
+      appointmentsByStatus: buildStatusCounts(appointments),
+      recentAppointments: appointments.slice(0, 6),
+      recentActivities: activities.slice(0, 8),
+      bestGreenSlots: [...slots].sort((a, b) => b.greenBonus - a.greenBonus || a.estimatedWaitMinutes - b.estimatedWaitMinutes).slice(0, 4),
+      topDrivers: drivers.slice(0, 5),
+      impactMetrics: [
+        { label: "Giảm công việc thủ công", value: `${manualMinutesSaved} phút`, note: "Mục tiêu: rút ngắn xử lý giấy tờ và check-in tại cổng." },
+        { label: "Cải thiện tốc độ giao hàng", value: `${Math.round(averageWaitMinutes)} phút chờ TB`, note: "Mục tiêu PM: kéo thời gian chờ về dưới 30 phút." },
+        { label: "Giảm phát thải tại cổng", value: `${Number(totalCo2SavedKg.toFixed(1))} kg CO2`, note: "Giảm xe nổ máy chờ ở khu vực cảng/kho bãi." },
+        { label: "Slot ít ùn tắc", value: `${greenSlotRate}% slot tốt`, note: "Phân bổ xe chủ động khỏi giờ cao điểm." },
+        { label: "Chi phí vận hành tiết kiệm", value: `${costSavingEstimateVnd.toLocaleString("vi-VN")}đ`, note: "Ước tính từ giảm thời gian chờ và xử lý cổng." },
+      ],
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "UNAUTHORIZED") return jsonError("Chưa đăng nhập", 401);
+    console.error("Reports API failed", error);
+    return jsonError("Không tải được báo cáo", 500);
+  }
+}
+
+function sum(values: number[]) {
+  return values.reduce((total, value) => total + Number(value || 0), 0);
+}
+
+function average(values: number[]) {
+  return values.length ? sum(values) / values.length : 0;
+}
+
+function isSameDay(value: Date, dayStart: Date) {
+  const nextDay = new Date(dayStart);
+  nextDay.setDate(nextDay.getDate() + 1);
+  return value >= dayStart && value < nextDay;
+}
+
+function buildStatusCounts(appointments: Appointment[]) {
+  return ["PENDING", "COMING", "COMPLETED", "LATE", "CANCELLED"].map((status) => ({ status, count: appointments.filter((item) => item.status === status).length }));
+}

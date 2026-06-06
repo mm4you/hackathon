@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+  DRIVER
+}
+
+enum CompanyType {
+  LOGISTICS
+  PORT_OPERATOR
+  WAREHOUSE
+}
+
+enum CongestionLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AppointmentStatus {
+  PENDING
+  COMING
+  COMPLETED
+  LATE
+  CANCELLED
+}
+
+enum OptimizationPreference {
+  FASTEST
+  LOW_CONGESTION
+  ECO
+}
+
+enum RewardType {
+  PRIORITY_GATE
+  SERVICE_DISCOUNT
+  FUEL_VOUCHER
+  MAINTENANCE_VOUCHER
+  GREEN_BADGE
+}
+
+enum RedemptionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  USED
+}
+
+model Company {
+  id           String      @id @default(cuid())
+  name         String
+  type         CompanyType
+  contactEmail String?
+  contactPhone String?
+  users        User[]
+  vehicles     Vehicle[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model User {
+  id                String             @id @default(cuid())
+  companyId         String?
+  company           Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  name              String
+  email             String             @unique
+  passwordHash      String
+  role              UserRole           @default(DRIVER)
+  phone             String?
+  greenPoints       Int                @default(0)
+  vehicles          Vehicle[]
+  appointments      Appointment[]
+  greenCredits      GreenCredit[]
+  rewardRedemptions RewardRedemption[]
+  activityLogs      ActivityLog[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model Vehicle {
+  id           String        @id @default(cuid())
+  companyId    String?
+  company      Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  driverId     String
+  driver       User          @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  plateNumber  String        @unique
+  vehicleType  String
+  capacityNote String?
+  appointments Appointment[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Port {
+  id           String        @id @default(cuid())
+  name         String
+  address      String
+  latitude     Float?
+  longitude    Float?
+  isActive     Boolean       @default(true)
+  timeSlots    TimeSlot[]
+  appointments Appointment[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model TimeSlot {
+  id                   String          @id @default(cuid())
+  portId               String
+  port                 Port            @relation(fields: [portId], references: [id], onDelete: Cascade)
+  startTime            DateTime
+  endTime              DateTime
+  capacity             Int
+  bookedCount          Int             @default(0)
+  congestionLevel      CongestionLevel
+  estimatedWaitMinutes Int
+  greenBonus           Int
+  appointments         Appointment[]
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@index([portId, startTime])
+}
+
+model Appointment {
+  id                     String                 @id @default(cuid())
+  driverId               String
+  driver                 User                   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  vehicleId              String
+  vehicle                Vehicle                @relation(fields: [vehicleId], references: [id])
+  portId                 String
+  port                   Port                   @relation(fields: [portId], references: [id])
+  timeSlotId             String
+  timeSlot               TimeSlot               @relation(fields: [timeSlotId], references: [id])
+  status                 AppointmentStatus      @default(PENDING)
+  preferredTime          DateTime
+  optimizationPreference OptimizationPreference
+  recommendationReason   String                 @db.Text
+  estimatedWaitMinutes   Int
+  greenCreditEarned      Int
+  co2SavedKg             Float
+  creditAwarded          Boolean                @default(false)
+  greenCredits           GreenCredit[]
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  @@index([driverId, createdAt])
+  @@index([status, createdAt])
+}
+
+model GreenCredit {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  points        Int
+  reason        String
+  createdAt     DateTime    @default(now())
+
+  @@unique([appointmentId])
+  @@index([userId, createdAt])
+}
+
+model Reward {
+  id             String             @id @default(cuid())
+  title          String
+  description    String             @db.Text
+  pointsRequired Int
+  type           RewardType
+  isActive       Boolean            @default(true)
+  redemptions    RewardRedemption[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+model RewardRedemption {
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rewardId   String
+  reward     Reward           @relation(fields: [rewardId], references: [id])
+  pointsUsed Int
+  status     RedemptionStatus @default(PENDING)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  type      String
+  message   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([actorId, createdAt])
+}
