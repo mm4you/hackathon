@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ export function AppointmentsBoard() {
   const [updatingId, setUpdatingId] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [checkInBaseUrl] = useState(() => (typeof window === "undefined" ? "" : window.location.origin));
 
   useEffect(() => {
     let cancelled = false;
@@ -69,7 +71,14 @@ export function AppointmentsBoard() {
     setUpdatingId("");
     if (!response.ok) return setError(json.error ?? "Không cập nhật được trạng thái");
     if (json.data) setAppointments((items) => items.map((item) => (item.id === id ? json.data as Appointment : item)));
+    refreshAppointments();
     setMessage(status === "COMPLETED" ? "Đã hoàn thành lịch hẹn. Điểm xanh sẽ được cộng một lần nếu chưa cộng." : "Đã cập nhật trạng thái lịch hẹn.");
+  }
+
+  async function refreshAppointments() {
+    const response = await fetch("/api/appointments");
+    const json = (await response.json()) as ApiResponse<Appointment[]>;
+    if (response.ok) setAppointments(json.data ?? []);
   }
 
   const activeCount = appointments.filter((item) => item.status === "PENDING" || item.status === "COMING").length;
@@ -81,7 +90,7 @@ export function AppointmentsBoard() {
     <div className="space-y-4">
       <section className="grid gap-3 md:grid-cols-3">
         <ImpactCard label="Đang mở" value={`${activeCount} lịch`} text="Các lịch đang chờ tài xế đến hoặc đang được điều phối." />
-        <ImpactCard label="Check-in" value="QR / camera" text="Có thể mở rộng sang quét QR, biển số hoặc container tại cổng." />
+        <ImpactCard label="Check-in" value="QR mobile" text="Tài xế có pass QR trên web mobile; cổng có thể quét để tra lịch và đối chiếu biển số." />
         <ImpactCard label="Hoàn thành" value={`${completedCount} lịch`} text={`Điểm xanh được cấp sau khi hoàn tất, CO2 tiết kiệm ước tính ${totalCo2.toFixed(1)} kg.`} />
       </section>
 
@@ -124,10 +133,12 @@ export function AppointmentsBoard() {
                 </div>
               </div>
 
+              {!canUpdateStatus ? <CheckInPass appointment={appointment} baseUrl={checkInBaseUrl} /> : null}
+
               <div className="mt-4 flex flex-col gap-3 border-t pt-4 lg:flex-row lg:items-center lg:justify-between">
-                <div className="text-xs leading-5 text-muted-foreground">Gợi ý mở rộng: QR check-in có thể gắn với lịch này để xác thực xe tại cổng.</div>
-                {canUpdateStatus ? <div className="flex flex-wrap gap-2">
-                  {statuses.map((status) => <Button key={status} disabled={updatingId === appointment.id || appointment.status === status} onClick={() => updateStatus(appointment.id, status)} variant="outline" size="sm" className="rounded-full text-xs">{status}</Button>)}
+                <div className="text-xs leading-5 text-muted-foreground">Admin/operator cập nhật trạng thái; tài xế dùng QR mobile khi đến cổng.</div>
+                {canUpdateStatus ? <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                  {statuses.map((status) => <Button key={status} disabled={updatingId === appointment.id || appointment.status === status} onClick={() => updateStatus(appointment.id, status)} variant="outline" size="sm" className="rounded-full text-xs sm:w-auto">{status}</Button>)}
                 </div> : <div className="rounded-full border bg-muted/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground">Driver view: chờ điều phối cập nhật trạng thái</div>}
               </div>
             </Card>
@@ -135,6 +146,24 @@ export function AppointmentsBoard() {
         </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function CheckInPass({ appointment, baseUrl }: { appointment: Appointment; baseUrl: string }) {
+  if (!baseUrl || appointment.status === "COMPLETED" || appointment.status === "CANCELLED") return null;
+
+  const checkInUrl = `${baseUrl}/appointments?checkin=${appointment.id}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=10&data=${encodeURIComponent(checkInUrl)}`;
+
+  return (
+    <div className="mt-4 grid gap-3 rounded-2xl border bg-muted/20 p-3 sm:grid-cols-[120px_minmax(0,1fr)] sm:items-center">
+      <Image src={qrUrl} alt={`QR check-in cho lịch ${appointment.vehicle.plateNumber}`} width={120} height={120} unoptimized className="mx-auto size-[120px] rounded-xl border bg-white p-2 sm:mx-0" />
+      <div className="min-w-0 text-sm leading-6">
+        <div className="font-semibold">QR check-in cổng</div>
+        <div className="mt-1 text-muted-foreground">Đưa mã này cho bảo vệ/cổng quét để đối chiếu lịch, biển số {appointment.vehicle.plateNumber} và khung giờ đã đặt.</div>
+        <div className="mt-2 truncate rounded-lg border bg-background px-3 py-2 font-mono text-[11px] text-muted-foreground">{checkInUrl}</div>
+      </div>
     </div>
   );
 }

@@ -45,11 +45,11 @@ export async function DashboardLayout({ title, description, children, action }: 
             <p className="mt-4 text-xs leading-5 text-muted-foreground">Quản lý lịch vào cảng, slot trống và điểm xanh cho tài xế.</p>
           </div>
 
-          <nav className="mt-4 grid gap-1.5">
+          <nav className="mt-4 flex gap-1.5 overflow-x-auto pb-1 lg:grid lg:overflow-visible lg:pb-0">
             {visibleNav.map((item) => (
-              <Link key={item.href} href={item.href} className="rounded-xl border border-transparent px-3 py-2.5 transition hover:border-border hover:bg-muted/50">
+              <Link key={item.href} href={item.href} className="min-w-[132px] rounded-xl border border-transparent px-3 py-2.5 transition hover:border-border hover:bg-muted/50 lg:min-w-0">
                 <div className="text-sm font-medium">{item.label}</div>
-                <div className="mt-0.5 text-xs text-muted-foreground">{item.description}</div>
+                <div className="mt-0.5 hidden text-xs text-muted-foreground sm:block">{item.description}</div>
               </Link>
             ))}
           </nav>
@@ -70,7 +70,7 @@ export async function DashboardLayout({ title, description, children, action }: 
         <section className="min-w-0 pb-3 2xl:pb-4">
           <div className="mb-3 flex flex-col gap-3 rounded-[1.35rem] border bg-card p-3 shadow-sm md:flex-row md:items-center md:justify-between 2xl:mb-4">
               <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Operations dashboard</div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div className="grid size-9 place-items-center rounded-xl border bg-background"><Bell className="size-4 text-muted-foreground" /></div>
               {action}
               <LogoutButton />
