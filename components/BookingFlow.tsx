@@ -137,6 +137,8 @@ export function BookingFlow() {
   }
 
   const selected = recommendations.find((item) => item.id === selectedId) ?? null;
+  const selectedAdvice = selected ? (aiDecision?.bestSlotId === selected.id ? aiDecision.driverAdvice : selected.recommendedAction) : "";
+  const selectedRiskSummary = selected ? (aiDecision?.bestSlotId === selected.id ? aiDecision.riskSummary : selected.trafficSignal.message) : "";
 
   return (
     <div className="grid gap-3 xl:grid-cols-[minmax(340px,26vw)_minmax(0,1fr)] xl:gap-5">
@@ -190,8 +192,8 @@ export function BookingFlow() {
                   <Badge variant="outline" className="w-fit rounded-full px-3 py-1">{selected.confidence}% confidence</Badge>
                 </div>
               </div>
-              <div className="mt-3 rounded-xl border bg-background p-3 text-sm font-semibold">{aiDecision?.driverAdvice ?? selected.recommendedAction}</div>
-              {aiDecision ? <div className="mt-3 rounded-xl border bg-background p-3 text-sm leading-6 text-muted-foreground"><span className="font-semibold text-foreground">Rủi ro:</span> {aiDecision.riskSummary}</div> : null}
+              <div className="mt-3 rounded-xl border bg-background p-3 text-sm font-semibold">{selectedAdvice}</div>
+              <div className="mt-3 rounded-xl border bg-background p-3 text-sm leading-6 text-muted-foreground"><span className="font-semibold text-foreground">Rủi ro:</span> {selectedRiskSummary}</div>
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3 xl:grid-cols-4">
