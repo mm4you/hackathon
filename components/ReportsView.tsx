@@ -55,22 +55,22 @@ export function ReportsView() {
   if (error || !report) return <div className="rounded-[1.5rem] border border-destructive/30 bg-destructive/10 p-6 text-sm text-destructive">{error || "Không có dữ liệu báo cáo"}</div>;
 
   return (
-    <div className="space-y-5">
-      <section className="rounded-[2rem] border bg-muted/30 p-6 shadow-sm">
-        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Báo cáo vận hành</div>
-        <h2 className="mt-3 max-w-3xl text-3xl font-semibold tracking-[-0.05em]">Theo dõi hiệu quả đặt lịch vào cảng</h2>
-        <p className="mt-3 max-w-4xl text-sm leading-6 text-muted-foreground">Tổng hợp số booking, thời gian chờ, CO2 tiết kiệm, điểm xanh và các chỉ số chính để demo cho PM/client.</p>
+    <div className="space-y-3 sm:space-y-5">
+      <section className="rounded-[1.2rem] border bg-muted/30 p-4 shadow-sm sm:rounded-[2rem] sm:p-6">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">Báo cáo vận hành</div>
+        <h2 className="mt-2 max-w-3xl text-2xl font-semibold tracking-[-0.05em] sm:mt-3 sm:text-3xl">Hiệu quả đặt lịch vào cảng</h2>
+        <p className="mt-2 line-clamp-2 max-w-4xl text-sm leading-6 text-muted-foreground sm:mt-3 sm:line-clamp-none">Tổng hợp số booking, thời gian chờ, CO2 tiết kiệm, điểm xanh và các chỉ số chính để demo cho PM/client.</p>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-5">
+      <section className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-5">
         {report.impactMetrics.map((metric) => <ImpactMetric key={metric.label} label={metric.label} value={metric.value} note={metric.note} />)}
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,28vw)]">
-        <div className="rounded-[1.35rem] border bg-card p-5 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Operational Summary</div>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">Hiệu quả điều phối</h2>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(340px,26vw)] xl:gap-5">
+        <div className="rounded-[1.2rem] border bg-card p-4 shadow-sm sm:p-5 lg:rounded-[1.35rem]">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">Operational Summary</div>
+          <h2 className="mt-2 text-xl font-semibold tracking-[-0.04em] sm:text-2xl">Hiệu quả điều phối</h2>
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3 xl:grid-cols-3">
             <Summary label="Tổng lịch" value={String(report.summary.totalAppointments)} />
             <Summary label="Hoàn thành" value={String(report.summary.completedAppointments)} />
             <Summary label="Chờ trung bình" value={`${report.summary.averageWaitMinutes} phút`} />
@@ -80,18 +80,21 @@ export function ReportsView() {
           </div>
         </div>
 
-        <div className="rounded-[1.35rem] border bg-card p-5 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Hướng mở rộng</div>
-          <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em]">Từ đặt lịch đến check-in tự động</h2>
-          <div className="mt-4 grid gap-3">
+        <div className="rounded-[1.2rem] border bg-card p-4 shadow-sm sm:p-5 lg:rounded-[1.35rem]">
+          <details>
+          <summary className="cursor-pointer text-sm font-semibold">Hướng mở rộng check-in</summary>
+          <div className="mt-3 grid gap-2 sm:gap-3">
             <Roadmap title="Hiện trạng" text="Tài xế có thể phải chờ lâu, xử lý giấy tờ thủ công và dễ sai dữ liệu." />
             <Roadmap title="V2 hiện tại" text="AI đặt hẹn chủ động, slot xanh, lịch hẹn và điểm xanh sau completed." />
             <Roadmap title="Mở rộng" text={`QR/camera nhận diện biển số và container, mục tiêu mở cổng ${report.summary.gateProcessingTargetSeconds} giây.`} />
           </div>
+          </details>
         </div>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-3">
+      <details className="rounded-[1.2rem] border bg-card p-4 shadow-sm lg:rounded-[1.35rem]">
+        <summary className="cursor-pointer text-sm font-semibold">Biểu đồ và bảng xếp hạng</summary>
+      <section className="mt-3 grid gap-3 lg:grid-cols-3 lg:gap-5">
         <Panel title="Trạng thái lịch hẹn">
           {report.appointmentsByStatus.map((item) => <Bar key={item.status} label={item.status} value={item.count} total={Math.max(1, report.summary.totalAppointments)} />)}
         </Panel>
@@ -105,16 +108,17 @@ export function ReportsView() {
           {!report.topDrivers.length ? <div className="py-6 text-sm text-muted-foreground">Driver view không hiển thị bảng xếp hạng toàn hệ thống.</div> : null}
         </Panel>
       </section>
+      </details>
     </div>
   );
 }
 
 function ImpactMetric({ label, value, note }: { label: string; value: string; note: string }) {
-  return <Card className="gap-2 rounded-[1.25rem] p-5 shadow-sm"><div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div><CardTitle className="text-2xl font-semibold tracking-[-0.04em]">{value}</CardTitle><CardDescription className="leading-6">{note}</CardDescription></Card>;
+  return <Card className="gap-1 rounded-[1rem] p-3 shadow-sm sm:gap-2 sm:rounded-[1.25rem] sm:p-5"><div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:text-xs sm:tracking-[0.16em]">{label}</div><CardTitle className="text-lg font-semibold tracking-[-0.04em] sm:text-2xl">{value}</CardTitle><CardDescription className="hidden leading-6 sm:block">{note}</CardDescription></Card>;
 }
 
 function Summary({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-2xl border bg-muted/20 p-4"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</div><div className="mt-2 text-xl font-semibold">{value}</div></div>;
+  return <div className="rounded-2xl border bg-muted/20 p-3 sm:p-4"><div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">{label}</div><div className="mt-1 text-lg font-semibold sm:mt-2 sm:text-xl">{value}</div></div>;
 }
 
 function Roadmap({ title, text }: { title: string; text: string }) {

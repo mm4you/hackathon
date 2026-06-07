@@ -47,22 +47,22 @@ export function GreenCreditsPanel() {
   if (loading) return <div className="rounded-[1.5rem] border bg-card p-6 text-sm text-muted-foreground shadow-sm">Đang tải điểm xanh...</div>;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {error ? <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p> : null}
 
-      <section className="grid gap-3 md:grid-cols-4">
+      <section className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
         <Metric label="Tổng điểm hiện tại" value={String(points)} text="Số điểm có thể dùng để đổi ưu đãi." />
         <Metric label="Cấp bậc" value={rank} text="Green Driver ranking cho PM/client thấy động lực hành vi." />
         <Metric label="CO2 saved" value={`${(data?.summary.totalCo2SavedKg ?? 0).toFixed(1)} kg`} text="Tác động môi trường từ các lịch đã hoàn thành." />
         <Metric label="Giao dịch điểm" value={String(data?.summary.transactionCount ?? 0)} text="Mỗi appointment chỉ được cộng một lần." />
       </section>
 
-      <section className="rounded-[1.35rem] border bg-card p-5 shadow-sm">
+      <section className="rounded-[1.2rem] border bg-card p-4 shadow-sm sm:p-5 lg:rounded-[1.35rem]">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Điểm xanh</div>
-            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">Hoàn thành lịch để nhận điểm</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Điểm được tính từ khung giờ, thời gian chờ, mức ùn tắc và CO2 tiết kiệm.</p>
+            <h2 className="mt-2 text-xl font-semibold tracking-[-0.04em] sm:text-2xl">Hoàn thành lịch để nhận điểm</h2>
+            <p className="mt-2 line-clamp-2 max-w-3xl text-sm leading-6 text-muted-foreground sm:line-clamp-none">Điểm được tính từ khung giờ, thời gian chờ, mức ùn tắc và CO2 tiết kiệm.</p>
           </div>
           <div className="text-sm font-semibold">{points}/{nextTarget || points} điểm</div>
         </div>
@@ -71,20 +71,19 @@ export function GreenCreditsPanel() {
         </div>
       </section>
 
-      <section className="rounded-[1.35rem] border bg-card p-5 shadow-sm">
-        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Green Credit Formula</div>
-        <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em]">Cơ chế cộng điểm minh bạch</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-5">
+      <details className="rounded-[1.2rem] border bg-card p-4 shadow-sm sm:p-5 lg:rounded-[1.35rem]">
+        <summary className="cursor-pointer text-sm font-semibold">Cơ chế cộng điểm</summary>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-5">
           <Formula label="Hoàn thành" value="+25" />
           <Formula label="Ít chờ" value="+0-35" />
           <Formula label="Ít ùn tắc" value="+0-35" />
           <Formula label="Thấp điểm" value="+0-28" />
           <Formula label="Eco bonus" value="Theo slot" />
         </div>
-      </section>
+      </details>
 
-      <section className="overflow-hidden rounded-[1.35rem] border bg-card shadow-sm">
-        <div className="border-b px-5 py-4 font-semibold">Lịch sử điểm</div>
+      <section className="overflow-hidden rounded-[1.2rem] border bg-card shadow-sm lg:rounded-[1.35rem]">
+        <div className="border-b px-4 py-3 font-semibold sm:px-5 sm:py-4">Lịch sử điểm</div>
         <div className="divide-y">
           {data?.credits.map((credit) => (
             <div key={credit.id} className="flex flex-col justify-between gap-3 px-5 py-4 sm:flex-row sm:items-start">
@@ -124,7 +123,7 @@ function formatDateTime(value: string) {
 }
 
 function Metric({ label, value, text }: { label: string; value: string; text: string }) {
-  return <div className="rounded-[1.25rem] border bg-card p-5 shadow-sm"><div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</div><div className="mt-2 text-2xl font-semibold tracking-[-0.04em]">{value}</div><p className="mt-2 text-sm leading-6 text-muted-foreground">{text}</p></div>;
+  return <div className="rounded-[1rem] border bg-card p-3 shadow-sm sm:rounded-[1.25rem] sm:p-5"><div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:text-xs sm:tracking-[0.18em]">{label}</div><div className="mt-1 text-lg font-semibold tracking-[-0.04em] sm:mt-2 sm:text-2xl">{value}</div><p className="mt-2 hidden text-sm leading-6 text-muted-foreground sm:block">{text}</p></div>;
 }
 
 function Formula({ label, value }: { label: string; value: string }) {

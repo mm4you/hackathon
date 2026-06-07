@@ -85,56 +85,57 @@ export function DashboardOverview() {
   const isOperations = report.scope === "OPERATIONS";
 
   return (
-    <div className="space-y-5">
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="space-y-3 sm:space-y-5">
+      <section className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
         <Metric label={isOperations ? "Lượt xe hôm nay" : "Lịch của tôi hôm nay"} value={String(report.summary.todayAppointments)} text="Booking tạo trong ngày hiện tại." />
         <Metric label="Thời gian chờ TB" value={`${report.summary.averageWaitMinutes} phút`} text="Theo dõi mức chờ trung bình của các lịch gần đây." />
         <Metric label={isOperations ? "Điểm xanh đã phát" : "Điểm xanh của tôi"} value={String(report.summary.totalGreenPointsIssued)} text="Dùng để đổi ưu đãi hoặc theo dõi hành vi đúng lịch." />
         <Metric label="CO2 saved" value={`${report.summary.totalCo2SavedKg} kg`} text="Tác động môi trường từ lịch đã hoàn thành." />
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,28vw)]">
-        <Card className="rounded-[1.35rem] shadow-sm">
-          <CardContent className="p-5">
+      <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(340px,26vw)] xl:gap-5">
+        <Card className="rounded-[1.2rem] shadow-sm lg:rounded-[1.35rem]">
+          <CardContent className="p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Tình trạng slot</div>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">Tình trạng khung giờ hôm nay</h2>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">Xem nhanh slot thoáng, slot cần theo dõi và slot nên tránh trong ngày.</p>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">Tình trạng slot</div>
+              <h2 className="mt-2 text-xl font-semibold tracking-[-0.04em] sm:text-2xl">Khung giờ hôm nay</h2>
+              <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground sm:line-clamp-none">Xem nhanh slot thoáng, slot cần theo dõi và slot nên tránh trong ngày.</p>
             </div>
-            <Link href="/booking" className="w-fit rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90">Đặt lịch xanh</Link>
+            {!isOperations ? <Link href="/booking" className="w-full rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 sm:w-fit sm:py-2.5">Đặt lịch xanh</Link> : <Link href="/appointments" className="w-full rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 sm:w-fit sm:py-2.5">Điều phối lịch</Link>}
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <div className="mt-4 grid grid-cols-3 gap-2 sm:mt-5 sm:gap-3">
             <Congestion label="Thoáng" count={report.congestionMix.LOW} tone="green" />
             <Congestion label="Cần theo dõi" count={report.congestionMix.MEDIUM} tone="amber" />
             <Congestion label="Cảnh báo kẹt xe" count={report.congestionMix.HIGH} tone="rose" />
           </div>
 
-          <div className="mt-5 rounded-[1.5rem] border bg-muted/30 p-5">
-             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Slot đề xuất</div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <details className="mt-4 rounded-[1.2rem] border bg-muted/30 p-3 sm:mt-5 sm:p-5">
+             <summary className="cursor-pointer text-sm font-semibold">Slot đề xuất</summary>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {report.bestGreenSlots.map((slot) => <SlotCard key={slot.id} slot={slot} />)}
               {!report.bestGreenSlots.length ? <div className="text-sm text-muted-foreground">Chưa có slot hôm nay.</div> : null}
             </div>
-          </div>
+          </details>
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.35rem] shadow-sm">
-          <CardContent className="p-5">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Quy trình</div>
-          <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em]">Từ đặt lịch đến nhận điểm</h2>
-          <div className="mt-4 grid gap-3">
+        <Card className="rounded-[1.2rem] shadow-sm lg:rounded-[1.35rem]">
+          <CardContent className="p-4 sm:p-5">
+          <details>
+          <summary className="cursor-pointer text-sm font-semibold">Quy trình vận hành</summary>
+          <div className="mt-3 grid gap-2 sm:gap-3">
             <Loop label="Đặt lịch" text="Hệ thống đề xuất khung giờ ít ùn tắc hơn." />
             <Loop label="Vào cổng" text={`Mục tiêu xử lý tại cổng: ${report.summary.gateProcessingTargetSeconds} giây.`} />
             <Loop label="Nhận điểm" text={`${report.summary.completedAppointments} lịch hoàn thành, ${report.summary.totalRedemptions} ưu đãi đã đổi.`} />
           </div>
+          </details>
           </CardContent>
         </Card>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,28vw)]">
+      <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(340px,26vw)] xl:gap-5">
         <Panel title={isOperations ? "Lịch hẹn gần đây của toàn hệ thống" : "Lịch hẹn gần đây của tôi"}>
           {report.recentAppointments.map((item) => <AppointmentRow key={item.id} appointment={item} />)}
           {!report.recentAppointments.length ? <Empty text="Chưa có lịch hẹn." /> : null}
@@ -153,12 +154,12 @@ function formatDateTime(value: string) {
 }
 
 function Metric({ label, value, text }: { label: string; value: string; text: string }) {
-  return <Card className="gap-2 rounded-[1.25rem] p-5 shadow-sm"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</div><CardTitle className="text-2xl font-semibold tracking-[-0.04em]">{value}</CardTitle><CardDescription className="leading-6">{text}</CardDescription></Card>;
+  return <Card className="gap-1 rounded-[1rem] p-3 shadow-sm sm:gap-2 sm:rounded-[1.25rem] sm:p-5"><div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">{label}</div><CardTitle className="text-lg font-semibold tracking-[-0.04em] sm:text-2xl">{value}</CardTitle><CardDescription className="hidden leading-6 sm:block">{text}</CardDescription></Card>;
 }
 
 function Congestion({ label, count, tone }: { label: string; count: number; tone: "green" | "amber" | "rose" }) {
   const colors = { green: "border-border bg-muted/30", amber: "border-border bg-muted/30", rose: "border-border bg-muted/30" };
-  return <Card className={`gap-1 rounded-[1.3rem] p-4 shadow-none ${colors[tone]}`}><div className="text-sm font-semibold">{label}</div><div className="text-3xl font-semibold tracking-[-0.04em]">{count}</div><div className="text-xs opacity-75">khung giờ</div></Card>;
+  return <Card className={`gap-1 rounded-[1rem] p-3 text-center shadow-none sm:rounded-[1.3rem] sm:p-4 sm:text-left ${colors[tone]}`}><div className="text-xs font-semibold sm:text-sm">{label}</div><div className="text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">{count}</div><div className="text-[10px] opacity-75 sm:text-xs">khung giờ</div></Card>;
 }
 
 function SlotCard({ slot }: { slot: TimeSlot }) {
@@ -171,7 +172,7 @@ function Loop({ label, text }: { label: string; text: string }) {
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return <Card className="gap-0 overflow-hidden rounded-[1.35rem] py-0 shadow-sm"><CardHeader className="border-b px-5 py-4"><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent className="divide-y px-0">{children}</CardContent></Card>;
+  return <Card className="gap-0 overflow-hidden rounded-[1.2rem] py-0 shadow-sm lg:rounded-[1.35rem]"><CardHeader className="border-b px-4 py-3 sm:px-5 sm:py-4"><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent className="divide-y px-0">{children}</CardContent></Card>;
 }
 
 function AppointmentRow({ appointment }: { appointment: Appointment }) {

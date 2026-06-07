@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
@@ -87,8 +88,8 @@ export function AppointmentsBoard() {
   const canUpdateStatus = currentUser?.role === "ADMIN" || currentUser?.role === "OPERATOR";
 
   return (
-    <div className="space-y-4">
-      <section className="grid gap-3 md:grid-cols-3">
+    <div className="space-y-3 sm:space-y-4">
+      <section className="grid grid-cols-3 gap-2 md:gap-3">
         <ImpactCard label="Đang mở" value={`${activeCount} lịch`} text="Các lịch đang chờ tài xế đến hoặc đang được điều phối." />
         <ImpactCard label="Check-in" value="QR mobile" text="Tài xế có pass QR trên web mobile; cổng có thể quét để tra lịch và đối chiếu biển số." />
         <ImpactCard label="Hoàn thành" value={`${completedCount} lịch`} text={`Điểm xanh được cấp sau khi hoàn tất, CO2 tiết kiệm ước tính ${totalCo2.toFixed(1)} kg.`} />
@@ -97,23 +98,23 @@ export function AppointmentsBoard() {
       {error ? <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p> : null}
       {message ? <p className="rounded-xl border bg-muted/30 px-4 py-3 text-sm">{message}</p> : null}
 
-      <Card className="rounded-[1.35rem] shadow-sm">
-        <CardContent className="p-5">
+      <Card className="rounded-[1.2rem] shadow-sm lg:rounded-[1.35rem]">
+        <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Bảng điều phối</div>
-            <CardTitle className="mt-2 text-2xl font-semibold tracking-[-0.04em]">Điều phối xe vào cảng</CardTitle>
-            <CardDescription className="mt-2 leading-6">Theo dõi hành trình từ đặt lịch chủ động, vào cổng, hoàn tất và cấp điểm xanh.</CardDescription>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">Bảng điều phối</div>
+            <CardTitle className="mt-2 text-xl font-semibold tracking-[-0.04em] sm:text-2xl">Điều phối xe vào cảng</CardTitle>
+            <CardDescription className="mt-2 line-clamp-2 leading-6 sm:line-clamp-none">Theo dõi hành trình từ đặt lịch chủ động, vào cổng, hoàn tất và cấp điểm xanh.</CardDescription>
           </div>
-          <Badge variant="outline" className="rounded-full px-3 py-1">Mục tiêu xử lý cổng: 30 giây</Badge>
+          <Badge variant="outline" className="w-fit rounded-full px-3 py-1">30 giây/cổng</Badge>
         </div>
 
         {loading ? <div className="mt-5 rounded-2xl border bg-muted/20 p-6 text-sm text-muted-foreground">Đang tải lịch hẹn...</div> : null}
         {!loading && !appointments.length ? <div className="mt-5 rounded-2xl border bg-muted/20 p-6 text-sm text-muted-foreground">Chưa có lịch hẹn. Hãy tạo booking để kiểm tra flow đặt lịch.</div> : null}
 
-        <div className="mt-5 grid gap-4">
+        <div className="mt-4 grid gap-3 sm:mt-5 sm:gap-4">
           {appointments.map((appointment) => (
-            <Card key={appointment.id} className="rounded-2xl p-4 shadow-none">
+            <Card key={appointment.id} className="gap-0 rounded-2xl p-3 shadow-none sm:p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -121,9 +122,9 @@ export function AppointmentsBoard() {
                     <RiskBadge risk={appointment.timeSlot.congestionLevel}>{appointment.timeSlot.congestionLevel}</RiskBadge>
                      {appointment.creditAwarded ? <Badge variant="secondary" className="rounded-full">Đã cấp điểm</Badge> : null}
                   </div>
-                  <h3 className="mt-3 text-lg font-semibold tracking-[-0.03em]">{appointment.vehicle.plateNumber} đến {appointment.port.name}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{appointment.driver.name} - {appointment.vehicle.vehicleType} - {formatDateTime(appointment.timeSlot.startTime)} đến {formatDateTime(appointment.timeSlot.endTime)}</p>
-                  <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{appointment.recommendationReason}</p>
+                  <h3 className="mt-3 truncate text-lg font-semibold tracking-[-0.03em]">{appointment.vehicle.plateNumber} đến {appointment.port.name}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(appointment.timeSlot.startTime)} - {formatDateTime(appointment.timeSlot.endTime)}</p>
+                  <p className="mt-1 truncate text-xs text-muted-foreground sm:text-sm">{appointment.driver.name} - {appointment.vehicle.vehicleType}</p>
                 </div>
 
                 <div className="grid shrink-0 grid-cols-3 gap-2 text-center lg:w-[330px]">
@@ -133,10 +134,21 @@ export function AppointmentsBoard() {
                 </div>
               </div>
 
-              {!canUpdateStatus ? <CheckInPass appointment={appointment} baseUrl={checkInBaseUrl} /> : null}
+              <CheckInPass appointment={appointment} baseUrl={checkInBaseUrl} />
+
+              <details className="mt-3 rounded-2xl border bg-muted/20 p-3">
+                <summary className="cursor-pointer text-sm font-semibold">Chi tiết lịch hẹn</summary>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">{appointment.recommendationReason}</p>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+                  <Info label="Tài xế" value={appointment.driver.name} />
+                  <Info label="Xe" value={appointment.vehicle.vehicleType} />
+                  <Info label="Cảng" value={appointment.port.name} />
+                  <Info label="Slot" value={`${appointment.timeSlot.bookedCount}/${appointment.timeSlot.capacity}`} />
+                </div>
+              </details>
 
               <div className="mt-4 flex flex-col gap-3 border-t pt-4 lg:flex-row lg:items-center lg:justify-between">
-                <div className="text-xs leading-5 text-muted-foreground">Admin/operator cập nhật trạng thái; tài xế dùng QR mobile khi đến cổng.</div>
+                <div className="text-xs leading-5 text-muted-foreground">{canUpdateStatus ? "Chọn trạng thái mới cho lịch này." : "Tài xế dùng QR khi đến cổng."}</div>
                 {canUpdateStatus ? <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                   {statuses.map((status) => <Button key={status} disabled={updatingId === appointment.id || appointment.status === status} onClick={() => updateStatus(appointment.id, status)} variant="outline" size="sm" className="rounded-full text-xs sm:w-auto">{status}</Button>)}
                 </div> : <div className="rounded-full border bg-muted/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground">Driver view: chờ điều phối cập nhật trạng thái</div>}
@@ -151,20 +163,30 @@ export function AppointmentsBoard() {
 }
 
 function CheckInPass({ appointment, baseUrl }: { appointment: Appointment; baseUrl: string }) {
+  const [qrDataUrl, setQrDataUrl] = useState("");
+
+  useEffect(() => {
+    if (!baseUrl || appointment.status === "COMPLETED" || appointment.status === "CANCELLED") return;
+    const checkInUrl = `${baseUrl}/appointments?checkin=${appointment.id}`;
+    QRCode.toDataURL(checkInUrl, { width: 180, margin: 1, errorCorrectionLevel: "M" }).then(setQrDataUrl).catch(() => setQrDataUrl(""));
+  }, [appointment.id, appointment.status, baseUrl]);
+
   if (!baseUrl || appointment.status === "COMPLETED" || appointment.status === "CANCELLED") return null;
 
   const checkInUrl = `${baseUrl}/appointments?checkin=${appointment.id}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=10&data=${encodeURIComponent(checkInUrl)}`;
 
   return (
-    <div className="mt-4 grid gap-3 rounded-2xl border bg-muted/20 p-3 sm:grid-cols-[120px_minmax(0,1fr)] sm:items-center">
-      <Image src={qrUrl} alt={`QR check-in cho lịch ${appointment.vehicle.plateNumber}`} width={120} height={120} unoptimized className="mx-auto size-[120px] rounded-xl border bg-white p-2 sm:mx-0" />
-      <div className="min-w-0 text-sm leading-6">
-        <div className="font-semibold">QR check-in cổng</div>
-        <div className="mt-1 text-muted-foreground">Đưa mã này cho bảo vệ/cổng quét để đối chiếu lịch, biển số {appointment.vehicle.plateNumber} và khung giờ đã đặt.</div>
-        <div className="mt-2 truncate rounded-lg border bg-background px-3 py-2 font-mono text-[11px] text-muted-foreground">{checkInUrl}</div>
+    <details className="mt-3 rounded-2xl border bg-muted/20 p-3">
+      <summary className="cursor-pointer text-sm font-semibold">Check-in QR</summary>
+      <div className="mt-3 grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)] sm:items-center">
+        {qrDataUrl ? <Image src={qrDataUrl} alt={`QR check-in cho lịch ${appointment.vehicle.plateNumber}`} width={120} height={120} unoptimized className="mx-auto size-[120px] rounded-xl border bg-white p-2 sm:mx-0" /> : <div className="mx-auto grid size-[120px] place-items-center rounded-xl border bg-background p-3 text-center text-xs text-muted-foreground sm:mx-0">Đang tạo QR...</div>}
+        <div className="min-w-0 text-sm leading-6">
+          <div className="font-semibold">QR pass vào cổng</div>
+          <div className="mt-1 text-muted-foreground">Dùng để đối chiếu lịch, biển số {appointment.vehicle.plateNumber} và khung giờ đã đặt.</div>
+          <div className="mt-2 truncate rounded-lg border bg-background px-3 py-2 font-mono text-[11px] text-muted-foreground">{checkInUrl}</div>
+        </div>
       </div>
-    </div>
+    </details>
   );
 }
 
@@ -173,11 +195,15 @@ function formatDateTime(value: string) {
 }
 
 function ImpactCard({ label, value, text }: { label: string; value: string; text: string }) {
-  return <Card className="gap-2 rounded-[1.25rem] p-5 shadow-sm"><div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</div><CardTitle className="text-xl font-semibold tracking-[-0.04em]">{value}</CardTitle><CardDescription className="leading-6">{text}</CardDescription></Card>;
+  return <Card className="gap-1 rounded-[1rem] p-3 shadow-sm sm:gap-2 sm:rounded-[1.25rem] sm:p-5"><div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:text-xs sm:tracking-[0.18em]">{label}</div><CardTitle className="text-base font-semibold tracking-[-0.04em] sm:text-xl">{value}</CardTitle><CardDescription className="hidden leading-6 sm:block">{text}</CardDescription></Card>;
 }
 
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return <div className="rounded-xl border bg-muted/20 px-3 py-2"><div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div><div className="mt-1 text-sm font-bold">{value}</div></div>;
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-xl border bg-background p-2"><div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div><div className="mt-1 truncate font-medium">{value}</div></div>;
 }
 
 function StatusBadge({ status }: { status: AppointmentStatus }) {
