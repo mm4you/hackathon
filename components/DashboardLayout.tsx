@@ -4,6 +4,7 @@ import { Bell, Command } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import type { PublicUser } from "@/lib/api";
 import { LogoutButton } from "@/components/LogoutButton";
+import { MobileNavMenu } from "@/components/MobileNavMenu";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 
@@ -51,11 +52,13 @@ export async function DashboardLayout({ title, description, children, action, cu
             <p className="mt-3 hidden text-xs leading-5 text-muted-foreground lg:block">Quản lý lịch vào cảng, slot trống và điểm xanh cho tài xế.</p>
           </div>
 
-          <nav className="fixed inset-x-2 bottom-2 z-50 grid gap-1 rounded-[1.35rem] border bg-card/95 p-1.5 shadow-2xl backdrop-blur lg:static lg:inset-auto lg:z-auto lg:mt-4 lg:grid-cols-1 lg:gap-1.5 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none" style={{ gridTemplateColumns: `repeat(${visibleNav.length}, minmax(0, 1fr))` }}>
+          <MobileNavMenu items={visibleNav} />
+
+          <nav className="mt-4 hidden gap-1.5 lg:grid">
             {visibleNav.map((item) => (
-              <Link key={item.href} href={item.href} className="min-w-0 rounded-xl border border-transparent px-2 py-2 text-center transition hover:border-border hover:bg-muted/50 lg:px-3 lg:py-2.5 lg:text-left">
-                <div className="truncate text-[11px] font-semibold sm:text-xs lg:text-sm lg:font-medium">{item.label}</div>
-                <div className="mt-0.5 hidden text-xs text-muted-foreground sm:block">{item.description}</div>
+              <Link key={item.href} href={item.href} className="rounded-xl border border-transparent px-3 py-2.5 transition hover:border-border hover:bg-muted/50">
+                <div className="text-sm font-medium">{item.label}</div>
+                <div className="mt-0.5 text-xs text-muted-foreground">{item.description}</div>
               </Link>
             ))}
           </nav>
