@@ -118,16 +118,18 @@
 
 body {
   margin: 0;
-  background: var(--background);
+  background: #09090b;
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
 }
 
 html {
   min-height: 100%;
   width: 100%;
+  background: #09090b;
+  overscroll-behavior-y: none;
 }
 
 button,

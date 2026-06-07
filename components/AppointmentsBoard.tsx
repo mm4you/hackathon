@@ -28,7 +28,12 @@ type ApiResponse<T> = { data?: T; error?: string };
 type CurrentUserRole = "ADMIN" | "OPERATOR" | "DRIVER";
 type CheckInTokenResponse = { token: string; expiresInSeconds: number };
 
-const statuses: AppointmentStatus[] = ["PENDING", "COMING", "COMPLETED", "LATE", "CANCELLED"];
+const statusActions: { status: AppointmentStatus; label: string; variant?: "default" | "outline" | "destructive" }[] = [
+  { status: "COMING", label: "Xe sắp đến", variant: "default" },
+  { status: "COMPLETED", label: "Hoàn thành", variant: "default" },
+  { status: "LATE", label: "Báo trễ", variant: "outline" },
+  { status: "CANCELLED", label: "Hủy lịch", variant: "destructive" },
+];
 
 export function AppointmentsBoard({ currentUserRole }: { currentUserRole: CurrentUserRole }) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -118,7 +123,7 @@ export function AppointmentsBoard({ currentUserRole }: { currentUserRole: Curren
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge status={appointment.status} />
-                    <RiskBadge risk={appointment.timeSlot.congestionLevel}>{appointment.timeSlot.congestionLevel}</RiskBadge>
+                    <RiskBadge risk={appointment.timeSlot.congestionLevel}>{congestionLabel(appointment.timeSlot.congestionLevel)}</RiskBadge>
                      {appointment.creditAwarded ? <Badge variant="secondary" className="rounded-full">Đã cấp điểm</Badge> : null}
                   </div>
                   <h3 className="mt-3 truncate text-lg font-semibold tracking-[-0.03em]">{appointment.vehicle.plateNumber} đến {appointment.port.name}</h3>
@@ -135,6 +140,8 @@ export function AppointmentsBoard({ currentUserRole }: { currentUserRole: Curren
 
               {canShowQr ? <CheckInPass appointment={appointment} baseUrl={checkInBaseUrl} /> : null}
 
+              {canUpdateStatus ? <StatusTimeline status={appointment.status} /> : null}
+
               <details className="mt-3 rounded-2xl border bg-muted/20 p-3">
                 <summary className="cursor-pointer text-sm font-semibold">Chi tiết lịch hẹn</summary>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">{appointment.recommendationReason}</p>
@@ -149,7 +156,8 @@ export function AppointmentsBoard({ currentUserRole }: { currentUserRole: Curren
               <div className="mt-4 flex flex-col gap-3 border-t pt-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="text-xs leading-5 text-muted-foreground">{canUpdateStatus ? "Chọn trạng thái mới cho lịch này." : "Tài xế dùng QR khi đến cổng."}</div>
                 {canUpdateStatus ? <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                  {statuses.map((status) => <Button key={status} disabled={updatingId === appointment.id || appointment.status === status} onClick={() => updateStatus(appointment.id, status)} variant="outline" size="sm" className="rounded-full text-xs sm:w-auto">{status}</Button>)}
+                  {appointment.status !== "PENDING" ? <Button disabled={updatingId === appointment.id} onClick={() => updateStatus(appointment.id, "PENDING")} variant="outline" size="sm" className="rounded-full text-xs sm:w-auto">Đưa về chờ</Button> : null}
+                  {statusActions.map((action) => <Button key={action.status} disabled={updatingId === appointment.id || appointment.status === action.status || appointment.status === "COMPLETED" || appointment.status === "CANCELLED"} onClick={() => updateStatus(appointment.id, action.status)} variant={action.variant ?? "outline"} size="sm" className="rounded-full text-xs sm:w-auto">{action.label}</Button>)}
                 </div> : <div className="rounded-full border bg-muted/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground">Chờ cổng cập nhật trạng thái</div>}
               </div>
             </Card>
@@ -246,11 +254,48 @@ function Info({ label, value }: { label: string; value: string }) {
 }
 
 function StatusBadge({ status }: { status: AppointmentStatus }) {
-  const className = status === "CANCELLED" ? "border-destructive/30 bg-destructive/10 text-destructive" : "bg-muted/30";
-  return <Badge variant="outline" className={`rounded-full ${className}`}>{status}</Badge>;
+  const className = status === "COMPLETED" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : status === "COMING" ? "border-sky-500/30 bg-sky-500/10 text-sky-300" : status === "LATE" ? "border-amber-500/30 bg-amber-500/10 text-amber-300" : status === "CANCELLED" ? "border-destructive/30 bg-destructive/10 text-destructive" : "bg-muted/30";
+  return <Badge variant="outline" className={`rounded-full ${className}`}>{statusLabel(status)}</Badge>;
 }
 
 function RiskBadge({ risk, children }: { risk: Appointment["timeSlot"]["congestionLevel"]; children: React.ReactNode }) {
-  const className = risk === "HIGH" ? "border-destructive/30 bg-destructive/10 text-destructive" : "bg-muted/30";
+  const className = risk === "HIGH" ? "border-destructive/30 bg-destructive/10 text-destructive" : risk === "MEDIUM" ? "border-amber-500/30 bg-amber-500/10 text-amber-300" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
   return <Badge variant="outline" className={`rounded-full ${className}`}>{children}</Badge>;
+}
+
+function StatusTimeline({ status }: { status: AppointmentStatus }) {
+  const steps: { status: AppointmentStatus; label: string }[] = [
+    { status: "PENDING", label: "Chờ" },
+    { status: "COMING", label: "Đến cổng" },
+    { status: "COMPLETED", label: "Hoàn tất" },
+  ];
+  const currentIndex = status === "LATE" ? 1 : status === "CANCELLED" ? 0 : Math.max(0, steps.findIndex((step) => step.status === status));
+
+  return (
+    <div className="mt-3 rounded-2xl border bg-muted/20 p-3">
+      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tiến trình</div>
+      <div className="grid grid-cols-3 gap-2">
+        {steps.map((step, index) => {
+          const active = index <= currentIndex && status !== "CANCELLED";
+          return <div key={step.status} className={`rounded-xl border px-3 py-2 text-center text-xs font-semibold ${active ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}>{step.label}</div>;
+        })}
+      </div>
+      {status === "LATE" ? <div className="mt-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">Xe đang trễ, cần điều phối lại tại cổng.</div> : null}
+      {status === "CANCELLED" ? <div className="mt-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">Lịch đã hủy, không thể cập nhật tiếp.</div> : null}
+    </div>
+  );
+}
+
+function statusLabel(status: AppointmentStatus) {
+  if (status === "PENDING") return "Chờ xử lý";
+  if (status === "COMING") return "Xe sắp đến";
+  if (status === "COMPLETED") return "Hoàn thành";
+  if (status === "LATE") return "Trễ giờ";
+  return "Đã hủy";
+}
+
+function congestionLabel(level: Appointment["timeSlot"]["congestionLevel"]) {
+  if (level === "LOW") return "Ít ùn tắc";
+  if (level === "MEDIUM") return "Cần theo dõi";
+  return "Đông xe";
 }
