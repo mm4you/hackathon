@@ -29,6 +29,7 @@ export async function GET() {
       where: user.role === "DRIVER" ? { driverId: user.id } : undefined,
       select: appointmentSelect,
       orderBy: { createdAt: "desc" },
+      take: 50,
     });
 
     return jsonData(appointments);

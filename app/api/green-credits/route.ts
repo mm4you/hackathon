@@ -26,6 +26,7 @@ export async function GET() {
         },
       },
       orderBy: { createdAt: "desc" },
+      take: 40,
     });
 
     const totalIssued = credits.reduce((sum, item) => sum + Number(item.points ?? 0), 0);

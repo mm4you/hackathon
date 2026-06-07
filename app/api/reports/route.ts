@@ -57,7 +57,7 @@ export async function GET() {
     todayEnd.setDate(todayEnd.getDate() + 1);
 
     const [appointments, credits, redemptions, slots, drivers, activities] = await Promise.all([
-      prisma.appointment.findMany({ where: appointmentWhere, select: appointmentSelect, orderBy: { createdAt: "desc" } }) as Promise<Appointment[]>,
+      prisma.appointment.findMany({ where: appointmentWhere, select: appointmentSelect, orderBy: { createdAt: "desc" }, take: 100 }) as Promise<Appointment[]>,
       prisma.greenCredit.findMany({ where: userWhere, select: { points: true, appointment: { select: { co2SavedKg: true } } } }) as Promise<GreenCredit[]>,
       prisma.rewardRedemption.findMany({ where: userWhere, select: { id: true } }) as Promise<Redemption[]>,
       prisma.timeSlot.findMany({
@@ -65,8 +65,8 @@ export async function GET() {
         select: { id: true, startTime: true, endTime: true, capacity: true, bookedCount: true, congestionLevel: true, estimatedWaitMinutes: true, greenBonus: true, port: { select: { id: true, name: true } } },
         orderBy: { startTime: "asc" },
       }) as Promise<TimeSlot[]>,
-      isDriver ? Promise.resolve([] as Driver[]) : prisma.user.findMany({ where: { role: "DRIVER" }, select: { id: true, name: true, email: true, greenPoints: true }, orderBy: { greenPoints: "desc" } }) as Promise<Driver[]>,
-      prisma.activityLog.findMany({ where: isDriver ? { actorId: user.id } : undefined, select: { id: true, type: true, message: true, createdAt: true }, orderBy: { createdAt: "desc" } }) as Promise<Activity[]>,
+      isDriver ? Promise.resolve([] as Driver[]) : prisma.user.findMany({ where: { role: "DRIVER" }, select: { id: true, name: true, email: true, greenPoints: true }, orderBy: { greenPoints: "desc" }, take: 5 }) as Promise<Driver[]>,
+      prisma.activityLog.findMany({ where: isDriver ? { actorId: user.id } : undefined, select: { id: true, type: true, message: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 12 }) as Promise<Activity[]>,
     ]);
 
     const completedAppointments = appointments.filter((item) => item.status === "COMPLETED");

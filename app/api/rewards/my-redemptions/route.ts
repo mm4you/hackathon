@@ -16,6 +16,7 @@ export async function GET() {
         reward: { select: { id: true, title: true, description: true, type: true, pointsRequired: true } },
       },
       orderBy: { createdAt: "desc" },
+      take: 30,
     });
     return jsonData(redemptions);
   } catch (error) {
