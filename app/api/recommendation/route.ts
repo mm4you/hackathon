@@ -1,4 +1,4 @@
-import { jsonData, jsonError, readJsonObject, stringField } from "@/lib/api";
+import { isSameOriginRequest, jsonData, jsonError, readJsonObject, stringField } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
 import { buildAiDecisionAdvisor } from "@/lib/llmAdvisor";
 import { getContextPressure, getPortTrafficContext, type PortTrafficContext } from "@/lib/portTrafficContext";
@@ -12,10 +12,13 @@ type ExistingSlot = {
   startTime: Date;
   capacity: number;
   bookedCount: number;
+  updatedAt: Date;
 };
 
 export async function POST(request: Request) {
   try {
+    if (!isSameOriginRequest(request)) return jsonError("Yêu cầu không hợp lệ", 403);
+
     const user = await requireUser();
     if (user.role !== "DRIVER") return jsonError("Chỉ tài xế mới được lấy gợi ý đặt lịch", 403);
 
@@ -85,10 +88,13 @@ async function syncSlotsForDay(portId: string, dayStart: Date, context: PortTraf
 
   const existingSlots = await prisma.timeSlot.findMany({
     where: { portId, startTime: { gte: dayStart, lt: dayEnd } },
-    select: { id: true, startTime: true, capacity: true, bookedCount: true },
+    select: { id: true, startTime: true, capacity: true, bookedCount: true, updatedAt: true },
   }) as ExistingSlot[];
 
   if (existingSlots.length) {
+    const recentlySynced = existingSlots.every((slot) => Date.now() - new Date(slot.updatedAt).getTime() < 5 * 60 * 1000);
+    if (recentlySynced) return;
+
     await Promise.all(existingSlots.map((slot) => {
       const profile = buildRealtimeSlotProfile(slot.startTime, slot.capacity, slot.bookedCount, false, context);
       return prisma.timeSlot.update({

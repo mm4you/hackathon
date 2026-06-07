@@ -1,9 +1,15 @@
 import bcrypt from "bcryptjs";
-import { isEmail, jsonData, jsonError, limitedStringField, publicUser, readJsonObject } from "@/lib/api";
+import { isEmail, isSameOriginRequest, jsonData, jsonError, limitedStringField, publicUser, readJsonObject } from "@/lib/api";
 import { setAuthCookie, signAuthToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { consumeRateLimit, getClientIp } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) return jsonError("Yêu cầu không hợp lệ", 403);
+
+  const rate = consumeRateLimit(`login:${getClientIp(request)}`, 8, 15 * 60 * 1000);
+  if (!rate.allowed) return jsonError(`Thử lại sau ${rate.retryAfterSeconds} giây`, 429);
+
   const body = await readJsonObject(request);
   if (!body) return jsonError("Dữ liệu đăng nhập không hợp lệ", 400);
 

@@ -25,14 +25,14 @@ type Appointment = {
 };
 
 type ApiResponse<T> = { data?: T; error?: string };
-type CurrentUser = { id: string; role: "ADMIN" | "OPERATOR" | "DRIVER" };
+type CurrentUserRole = "ADMIN" | "OPERATOR" | "DRIVER";
+type CheckInTokenResponse = { token: string; expiresInSeconds: number };
 
 const statuses: AppointmentStatus[] = ["PENDING", "COMING", "COMPLETED", "LATE", "CANCELLED"];
 
-export function AppointmentsBoard() {
+export function AppointmentsBoard({ currentUserRole }: { currentUserRole: CurrentUserRole }) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [updatingId, setUpdatingId] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -43,13 +43,11 @@ export function AppointmentsBoard() {
     async function loadAppointments() {
       setLoading(true);
       setError("");
-      const [meResponse, appointmentsResponse] = await Promise.all([fetch("/api/auth/me"), fetch("/api/appointments")]);
-      const meJson = (await meResponse.json()) as ApiResponse<CurrentUser>;
+      const appointmentsResponse = await fetch("/api/appointments");
       const appointmentsJson = (await appointmentsResponse.json()) as ApiResponse<Appointment[]>;
       if (cancelled) return;
       setLoading(false);
-      if (!meResponse.ok || !appointmentsResponse.ok) return setError(meJson.error ?? appointmentsJson.error ?? "Không tải được lịch hẹn");
-      setCurrentUser(meJson.data ?? null);
+      if (!appointmentsResponse.ok) return setError(appointmentsJson.error ?? "Không tải được lịch hẹn");
       setAppointments(appointmentsJson.data ?? []);
     }
     loadAppointments().catch(() => {
@@ -85,13 +83,14 @@ export function AppointmentsBoard() {
   const activeCount = appointments.filter((item) => item.status === "PENDING" || item.status === "COMING").length;
   const completedCount = appointments.filter((item) => item.status === "COMPLETED").length;
   const totalCo2 = appointments.reduce((sum, item) => sum + item.co2SavedKg, 0);
-  const canUpdateStatus = currentUser?.role === "ADMIN" || currentUser?.role === "OPERATOR";
+  const canUpdateStatus = currentUserRole === "ADMIN" || currentUserRole === "OPERATOR";
+  const canShowQr = currentUserRole === "DRIVER";
 
   return (
     <div className="space-y-3 sm:space-y-4">
       <section className="grid grid-cols-3 gap-2 md:gap-3">
         <ImpactCard label="Đang mở" value={`${activeCount} lịch`} text="Các lịch đang chờ tài xế đến hoặc đang được điều phối." />
-        <ImpactCard label="Check-in" value="QR mobile" text="Tài xế có pass QR trên web mobile; cổng có thể quét để tra lịch và đối chiếu biển số." />
+        <ImpactCard label="Check-in" value={canShowQr ? "Mã QR" : "Điều phối"} text={canShowQr ? "Mở mã QR trên điện thoại để cổng đối chiếu lịch và biển số." : "Điều phối viên cập nhật trạng thái lịch tại cổng."} />
         <ImpactCard label="Hoàn thành" value={`${completedCount} lịch`} text={`Điểm xanh được cấp sau khi hoàn tất, CO2 tiết kiệm ước tính ${totalCo2.toFixed(1)} kg.`} />
       </section>
 
@@ -134,7 +133,7 @@ export function AppointmentsBoard() {
                 </div>
               </div>
 
-              <CheckInPass appointment={appointment} baseUrl={checkInBaseUrl} />
+              {canShowQr ? <CheckInPass appointment={appointment} baseUrl={checkInBaseUrl} /> : null}
 
               <details className="mt-3 rounded-2xl border bg-muted/20 p-3">
                 <summary className="cursor-pointer text-sm font-semibold">Chi tiết lịch hẹn</summary>
@@ -151,7 +150,7 @@ export function AppointmentsBoard() {
                 <div className="text-xs leading-5 text-muted-foreground">{canUpdateStatus ? "Chọn trạng thái mới cho lịch này." : "Tài xế dùng QR khi đến cổng."}</div>
                 {canUpdateStatus ? <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                   {statuses.map((status) => <Button key={status} disabled={updatingId === appointment.id || appointment.status === status} onClick={() => updateStatus(appointment.id, status)} variant="outline" size="sm" className="rounded-full text-xs sm:w-auto">{status}</Button>)}
-                </div> : <div className="rounded-full border bg-muted/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground">Driver view: chờ điều phối cập nhật trạng thái</div>}
+                </div> : <div className="rounded-full border bg-muted/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground">Chờ cổng cập nhật trạng thái</div>}
               </div>
             </Card>
           ))}
@@ -164,29 +163,69 @@ export function AppointmentsBoard() {
 
 function CheckInPass({ appointment, baseUrl }: { appointment: Appointment; baseUrl: string }) {
   const [qrDataUrl, setQrDataUrl] = useState("");
+  const [open, setOpen] = useState(false);
+  const [qrError, setQrError] = useState("");
+  const [checkInUrl, setCheckInUrl] = useState("");
 
   useEffect(() => {
-    if (!baseUrl || appointment.status === "COMPLETED" || appointment.status === "CANCELLED") return;
-    const checkInUrl = `${baseUrl}/appointments?checkin=${appointment.id}`;
-    QRCode.toDataURL(checkInUrl, { width: 180, margin: 1, errorCorrectionLevel: "M" }).then(setQrDataUrl).catch(() => setQrDataUrl(""));
-  }, [appointment.id, appointment.status, baseUrl]);
+    if (!open || !baseUrl || appointment.status === "COMPLETED" || appointment.status === "CANCELLED") return;
+    let cancelled = false;
+    async function createQr() {
+      setQrError("");
+      setQrDataUrl("");
+      const response = await fetch(`/api/appointments/${appointment.id}/check-in-token`, { method: "POST" });
+      const json = (await response.json()) as ApiResponse<CheckInTokenResponse>;
+      if (cancelled) return;
+      if (!response.ok || !json.data?.token) {
+        setQrError(json.error ?? "Không tạo được mã QR");
+        return;
+      }
+      const nextCheckInUrl = `${baseUrl}/api/check-in?token=${encodeURIComponent(json.data.token)}`;
+      setCheckInUrl(nextCheckInUrl);
+      QRCode.toDataURL(nextCheckInUrl, { width: 320, margin: 2, errorCorrectionLevel: "M" }).then((value) => {
+        if (!cancelled) setQrDataUrl(value);
+      }).catch(() => {
+        if (!cancelled) setQrError("Không tạo được mã QR");
+      });
+    }
+    createQr().catch(() => {
+      if (!cancelled) setQrError("Không tạo được mã QR");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [appointment.id, appointment.status, baseUrl, open]);
 
   if (!baseUrl || appointment.status === "COMPLETED" || appointment.status === "CANCELLED") return null;
 
-  const checkInUrl = `${baseUrl}/appointments?checkin=${appointment.id}`;
-
   return (
-    <details className="mt-3 rounded-2xl border bg-muted/20 p-3">
-      <summary className="cursor-pointer text-sm font-semibold">Check-in QR</summary>
-      <div className="mt-3 grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)] sm:items-center">
-        {qrDataUrl ? <Image src={qrDataUrl} alt={`QR check-in cho lịch ${appointment.vehicle.plateNumber}`} width={120} height={120} unoptimized className="mx-auto size-[120px] rounded-xl border bg-white p-2 sm:mx-0" /> : <div className="mx-auto grid size-[120px] place-items-center rounded-xl border bg-background p-3 text-center text-xs text-muted-foreground sm:mx-0">Đang tạo QR...</div>}
-        <div className="min-w-0 text-sm leading-6">
-          <div className="font-semibold">QR pass vào cổng</div>
-          <div className="mt-1 text-muted-foreground">Dùng để đối chiếu lịch, biển số {appointment.vehicle.plateNumber} và khung giờ đã đặt.</div>
-          <div className="mt-2 truncate rounded-lg border bg-background px-3 py-2 font-mono text-[11px] text-muted-foreground">{checkInUrl}</div>
+    <div className="mt-3">
+      <button type="button" onClick={() => setOpen(true)} className="flex w-full items-center justify-between gap-3 rounded-2xl border bg-muted/20 px-4 py-3 text-left transition hover:bg-muted/40">
+        <span>
+          <span className="block text-sm font-semibold">Mã QR vào cổng</span>
+          <span className="mt-0.5 block text-xs text-muted-foreground">Bấm để mở mã lớn cho cổng quét</span>
+        </span>
+        <span className="rounded-full border bg-background px-3 py-1 text-xs font-semibold">Mở QR</span>
+      </button>
+
+      {open ? (
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-black/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="QR check-in">
+          <div className="w-full max-w-sm rounded-[1.6rem] border bg-card p-4 text-center shadow-2xl">
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Mã QR vào cổng</div>
+            <h3 className="mt-2 text-xl font-semibold tracking-[-0.04em]">{appointment.vehicle.plateNumber}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{appointment.port.name} - {formatDateTime(appointment.timeSlot.startTime)}</p>
+
+            <div className="mt-4 rounded-[1.4rem] border bg-white p-4">
+              {qrDataUrl ? <Image src={qrDataUrl} alt={`QR check-in cho lịch ${appointment.vehicle.plateNumber}`} width={280} height={280} unoptimized className="mx-auto size-[260px] sm:size-[280px]" /> : <div className="mx-auto grid size-[260px] place-items-center rounded-xl bg-background p-3 text-center text-sm text-muted-foreground">{qrError || "Đang tạo QR..."}</div>}
+            </div>
+
+            {checkInUrl ? <div className="mt-3 truncate rounded-xl border bg-background px-3 py-2 font-mono text-[11px] text-muted-foreground">{checkInUrl}</div> : null}
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Đưa màn hình này cho bảo vệ/cổng quét để đối chiếu lịch và biển số.</p>
+            <Button onClick={() => setOpen(false)} className="mt-4 h-11 w-full rounded-2xl font-semibold">Đóng</Button>
+          </div>
         </div>
-      </div>
-    </details>
+      ) : null}
+    </div>
   );
 }
 

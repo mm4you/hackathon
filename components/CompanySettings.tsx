@@ -76,12 +76,12 @@ export function CompanySettings() {
         <section className="rounded-[1.35rem] border bg-card p-6 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Company Foundation</div>
           <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">Tài khoản chưa gắn với công ty</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">Khi triển khai B2B, user và xe nên thuộc một công ty logistics/cảng để phân quyền và báo cáo không bị lẫn dữ liệu.</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">Tài khoản cần gắn với công ty để quản lý đội xe, thành viên và báo cáo chính xác.</p>
         </section>
       ) : (
         <>
           <section className="grid gap-3 md:grid-cols-3">
-            <Summary label="Loại tổ chức" value={companyTypeLabel(company.type)} text="Nền để bán/bàn giao theo mô hình B2B." />
+            <Summary label="Loại tổ chức" value={companyTypeLabel(company.type)} text="Phục vụ phân quyền và báo cáo theo tổ chức." />
             <Summary label="Người dùng" value={String(company.users.length)} text="Admin, operator và driver thuộc cùng tổ chức." />
             <Summary label="Phương tiện" value={String(company.vehicles.length)} text="Fleet gắn với company để mở rộng quản lý đội xe." />
           </section>
@@ -98,11 +98,11 @@ export function CompanySettings() {
                 <Field label="Số điện thoại" value={form.contactPhone} disabled={!canEdit} onChange={(value) => setForm({ ...form, contactPhone: value })} />
               </div>
 
-              {canEdit ? <button disabled={saving} className="mt-5 w-full rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:opacity-60">{saving ? "Đang lưu..." : "Lưu hồ sơ công ty"}</button> : <p className="mt-5 rounded-2xl border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">Driver view: chỉ xem thông tin công ty.</p>}
+              {canEdit ? <button disabled={saving} className="mt-5 w-full rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:opacity-60">{saving ? "Đang lưu..." : "Lưu hồ sơ công ty"}</button> : <p className="mt-5 rounded-2xl border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">Bạn chỉ có quyền xem thông tin công ty.</p>}
             </form>
 
             <div className="grid gap-4">
-              <Panel title="Thành viên công ty" subtitle="Nền cho invite user và role B2B sau MVP.">
+              <Panel title="Thành viên công ty" subtitle="Danh sách tài khoản thuộc cùng tổ chức.">
                 {company.users.map((user) => <Row key={user.id} title={user.name} meta={`${user.role} - ${user.email}`} />)}
               </Panel>
               <Panel title="Đội xe" subtitle="Nền để logistics company quản lý nhiều xe và báo cáo fleet.">

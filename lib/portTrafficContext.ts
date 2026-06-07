@@ -40,7 +40,7 @@ export async function getPortTrafficContext(input: ContextInput): Promise<PortTr
   return {
     portCondition,
     trafficSnapshot,
-    dataSourceLabel: trafficSnapshot.source === "tomtom" ? "Traffic realtime + mô phỏng vận hành cảng" : "Mô phỏng vận hành + traffic demo",
+    dataSourceLabel: trafficSnapshot.source === "tomtom" ? "Giao thông realtime + vận hành cảng" : "Dữ liệu ước tính vận hành",
     decisionInsight: buildDecisionInsight(portCondition, trafficSnapshot),
   };
 }
@@ -76,8 +76,8 @@ function buildSimulatedTrafficSnapshot(targetTime: Date, portName: string): Port
     congestionLevel,
     delayMinutes,
     confidence: 58,
-      note: `Traffic demo quanh ${portName}; thay bằng nguồn realtime khi có API key.`,
-    insight: `Không có tín hiệu traffic realtime, hệ thống dùng mô phỏng theo khung giờ quanh ${portName}: trễ khoảng ${delayMinutes} phút, mức ${congestionLevel}.`,
+      note: `Ước tính giao thông quanh ${portName} theo khung giờ hiện tại.`,
+    insight: `Giao thông quanh ${portName} dự kiến trễ khoảng ${delayMinutes} phút, mức ${congestionLevel}.`,
   };
 }
 
@@ -129,8 +129,8 @@ async function fetchTomTomTraffic(latitude?: number | null, longitude?: number |
 }
 
 function buildDecisionInsight(portCondition: PortTrafficContext["portCondition"], trafficSnapshot: PortTrafficContext["trafficSnapshot"]) {
-  const sourceText = trafficSnapshot.source === "tomtom" ? "Traffic lấy từ nguồn realtime" : "Traffic đang dùng mô phỏng demo";
-  return `${sourceText}. ${trafficSnapshot.insight} ${portCondition.insight} Lưu ý: dữ liệu trong cổng Cát Lái chưa public realtime nên phần lane/thời gian xử lý là mô phỏng để thay thế khi chưa có tích hợp ePort/TOS.`;
+  const sourceText = trafficSnapshot.source === "tomtom" ? "Giao thông lấy từ nguồn realtime" : "Giao thông dùng dữ liệu ước tính";
+  return `${sourceText}. ${trafficSnapshot.insight} ${portCondition.insight}`;
 }
 
 function levelPressure(level: CongestionLevel) {

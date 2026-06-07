@@ -1,4 +1,4 @@
-import { jsonData, jsonError, readJsonObject, stringField } from "@/lib/api";
+import { isSameOriginRequest, jsonData, jsonError, readJsonObject, stringField } from "@/lib/api";
 import { requireOperatorOrAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -34,6 +34,8 @@ type AppointmentRecord = {
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
+    if (!isSameOriginRequest(request)) return jsonError("Yêu cầu không hợp lệ", 403);
+
     const user = await requireOperatorOrAdmin();
     const { id } = await context.params;
     const body = await readJsonObject(request);

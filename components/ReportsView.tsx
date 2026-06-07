@@ -59,7 +59,7 @@ export function ReportsView() {
       <section className="rounded-[1.2rem] border bg-muted/30 p-4 shadow-sm sm:rounded-[2rem] sm:p-6">
         <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">Báo cáo vận hành</div>
         <h2 className="mt-2 max-w-3xl text-2xl font-semibold tracking-[-0.05em] sm:mt-3 sm:text-3xl">Hiệu quả đặt lịch vào cảng</h2>
-        <p className="mt-2 line-clamp-2 max-w-4xl text-sm leading-6 text-muted-foreground sm:mt-3 sm:line-clamp-none">Tổng hợp số booking, thời gian chờ, CO2 tiết kiệm, điểm xanh và các chỉ số chính để demo cho PM/client.</p>
+        <p className="mt-2 line-clamp-2 max-w-4xl text-sm leading-6 text-muted-foreground sm:mt-3 sm:line-clamp-none">Tổng hợp số lịch, thời gian chờ, CO2 tiết kiệm, điểm xanh và hiệu quả vận hành.</p>
       </section>
 
       <section className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-5">
@@ -68,7 +68,7 @@ export function ReportsView() {
 
       <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(340px,26vw)] xl:gap-5">
         <div className="rounded-[1.2rem] border bg-card p-4 shadow-sm sm:p-5 lg:rounded-[1.35rem]">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">Operational Summary</div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">Tổng quan vận hành</div>
           <h2 className="mt-2 text-xl font-semibold tracking-[-0.04em] sm:text-2xl">Hiệu quả điều phối</h2>
           <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3 xl:grid-cols-3">
             <Summary label="Tổng lịch" value={String(report.summary.totalAppointments)} />
@@ -86,7 +86,7 @@ export function ReportsView() {
           <div className="mt-3 grid gap-2 sm:gap-3">
             <Roadmap title="Hiện trạng" text="Tài xế có thể phải chờ lâu, xử lý giấy tờ thủ công và dễ sai dữ liệu." />
             <Roadmap title="V2 hiện tại" text="AI đặt hẹn chủ động, slot xanh, lịch hẹn và điểm xanh sau completed." />
-            <Roadmap title="Mở rộng" text={`QR/camera nhận diện biển số và container, mục tiêu mở cổng ${report.summary.gateProcessingTargetSeconds} giây.`} />
+            <Roadmap title="Mở rộng" text={`QR và camera đối chiếu biển số, mục tiêu xử lý tại cổng ${report.summary.gateProcessingTargetSeconds} giây.`} />
           </div>
           </details>
         </div>
@@ -105,7 +105,7 @@ export function ReportsView() {
         </Panel>
         <Panel title="Top Green Drivers">
           {report.topDrivers.map((driver) => <DriverRow key={driver.id} driver={driver} />)}
-          {!report.topDrivers.length ? <div className="py-6 text-sm text-muted-foreground">Driver view không hiển thị bảng xếp hạng toàn hệ thống.</div> : null}
+          {!report.topDrivers.length ? <div className="py-6 text-sm text-muted-foreground">Không có dữ liệu xếp hạng để hiển thị.</div> : null}
         </Panel>
       </section>
       </details>

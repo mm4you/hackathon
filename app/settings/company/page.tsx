@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export default function CompanySettingsPage() {
   return (
-    <DashboardLayout title="Hồ sơ công ty" description="Company foundation cho bản B2B: gắn user, xe và báo cáo vào một tổ chức logistics/cảng để sẵn sàng mở rộng.">
+    <DashboardLayout title="Hồ sơ công ty" description="Quản lý thông tin tổ chức, thành viên và đội xe trong cùng một nơi.">
       <CompanySettings />
     </DashboardLayout>
   );

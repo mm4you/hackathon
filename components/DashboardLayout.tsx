@@ -21,11 +21,11 @@ const navItems: NavItem[] = [
   { href: "/green-credits", label: "Điểm xanh", description: "Lịch sử tín chỉ", roles: ["DRIVER"] },
   { href: "/rewards", label: "Ưu đãi", description: "Đổi điểm lấy quyền lợi", roles: ["DRIVER"] },
   { href: "/reports", label: "Báo cáo", description: "Tác động vận hành", roles: ["ADMIN", "OPERATOR"] },
-  { href: "/settings/company", label: "Công ty", description: "Hồ sơ B2B", roles: ["ADMIN", "OPERATOR", "DRIVER"] },
+  { href: "/settings/company", label: "Công ty", description: "Hồ sơ tổ chức", roles: ["ADMIN", "OPERATOR", "DRIVER"] },
 ];
 
-export async function DashboardLayout({ title, description, children, action }: { title: string; description: string; children: React.ReactNode; action?: React.ReactNode }) {
-  const user = await getCurrentUser();
+export async function DashboardLayout({ title, description, children, action, currentUser }: { title: string; description: string; children: React.ReactNode; action?: React.ReactNode; currentUser?: PublicUser | null }) {
+  const user = currentUser === undefined ? await getCurrentUser() : currentUser;
   if (!user) redirect("/login");
 
   const visibleNav = navItems.filter((item) => item.roles.includes(user.role));
@@ -40,7 +40,7 @@ export async function DashboardLayout({ title, description, children, action }: 
               <div className="grid size-8 place-items-center rounded-xl border bg-background"><Command className="size-4" /></div>
               <div className="min-w-0">
                 <div className="text-sm font-semibold tracking-[-0.03em]">InnovateX</div>
-                <div className="text-[11px] text-muted-foreground">Smart Port v2</div>
+                <div className="text-[11px] text-muted-foreground">Điều phối cảng</div>
               </div>
               </div>
               <div className="min-w-0 text-right lg:hidden">
@@ -51,7 +51,7 @@ export async function DashboardLayout({ title, description, children, action }: 
             <p className="mt-3 hidden text-xs leading-5 text-muted-foreground lg:block">Quản lý lịch vào cảng, slot trống và điểm xanh cho tài xế.</p>
           </div>
 
-          <nav className="fixed inset-x-2 bottom-2 z-50 grid grid-cols-4 gap-1 rounded-[1.35rem] border bg-card/95 p-1.5 shadow-2xl backdrop-blur lg:static lg:inset-auto lg:z-auto lg:mt-4 lg:grid-cols-1 lg:gap-1.5 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none">
+          <nav className="fixed inset-x-2 bottom-2 z-50 grid gap-1 rounded-[1.35rem] border bg-card/95 p-1.5 shadow-2xl backdrop-blur lg:static lg:inset-auto lg:z-auto lg:mt-4 lg:grid-cols-1 lg:gap-1.5 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none" style={{ gridTemplateColumns: `repeat(${visibleNav.length}, minmax(0, 1fr))` }}>
             {visibleNav.map((item) => (
               <Link key={item.href} href={item.href} className="min-w-0 rounded-xl border border-transparent px-2 py-2 text-center transition hover:border-border hover:bg-muted/50 lg:px-3 lg:py-2.5 lg:text-left">
                 <div className="truncate text-[11px] font-semibold sm:text-xs lg:text-sm lg:font-medium">{item.label}</div>
@@ -75,7 +75,7 @@ export async function DashboardLayout({ title, description, children, action }: 
 
         <section className="min-w-0 pb-3 2xl:pb-4">
           <div className="mb-2 flex items-center justify-between gap-2 rounded-[1.2rem] border bg-card p-2 shadow-sm md:mb-3 md:p-3 2xl:mb-4">
-              <div className="truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">Operations dashboard</div>
+              <div className="truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">Bảng điều khiển</div>
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
               <div className="hidden size-9 place-items-center rounded-xl border bg-background sm:grid"><Bell className="size-4 text-muted-foreground" /></div>
               {action}
@@ -87,11 +87,11 @@ export async function DashboardLayout({ title, description, children, action }: 
             <div className="p-4 sm:p-5 2xl:p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">Commercial MVP</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">InnovateX Smart Port</div>
                 <CardTitle className="mt-2 text-2xl font-semibold tracking-[-0.05em] sm:text-3xl">{title}</CardTitle>
                 <CardDescription className="mt-2 line-clamp-2 max-w-4xl leading-6 sm:line-clamp-none">{description}</CardDescription>
               </div>
-              <Badge variant="outline" className="hidden w-fit rounded-full px-3 py-1 text-left sm:inline-flex">MVP vận hành</Badge>
+              <Badge variant="outline" className="hidden w-fit rounded-full px-3 py-1 text-left sm:inline-flex">Đang vận hành</Badge>
             </div>
             </div>
           </Card>

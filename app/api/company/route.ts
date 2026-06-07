@@ -1,4 +1,4 @@
-import { jsonData, jsonError, limitedStringField, readJsonObject } from "@/lib/api";
+import { isSameOriginRequest, jsonData, jsonError, limitedStringField, readJsonObject } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -31,6 +31,8 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
+    if (!isSameOriginRequest(request)) return jsonError("Yêu cầu không hợp lệ", 403);
+
     const user = await requireUser();
     if (user.role === "DRIVER") return jsonError("Chỉ admin/operator được cập nhật công ty", 403);
     if (!user.companyId) return jsonError("Tài khoản chưa gắn với công ty", 400);

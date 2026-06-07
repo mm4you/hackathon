@@ -52,7 +52,7 @@ export function GreenCreditsPanel() {
 
       <section className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
         <Metric label="Tổng điểm hiện tại" value={String(points)} text="Số điểm có thể dùng để đổi ưu đãi." />
-        <Metric label="Cấp bậc" value={rank} text="Green Driver ranking cho PM/client thấy động lực hành vi." />
+        <Metric label="Cấp bậc" value={rank} text="Xếp hạng dựa trên điểm xanh đã tích lũy." />
         <Metric label="CO2 saved" value={`${(data?.summary.totalCo2SavedKg ?? 0).toFixed(1)} kg`} text="Tác động môi trường từ các lịch đã hoàn thành." />
         <Metric label="Giao dịch điểm" value={String(data?.summary.transactionCount ?? 0)} text="Mỗi appointment chỉ được cộng một lần." />
       </section>

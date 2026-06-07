@@ -181,12 +181,12 @@ export function BookingFlow() {
             <div className="mt-4 rounded-2xl border bg-muted/30 p-3 sm:mt-5 sm:p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">AI Decision</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">Gợi ý thông minh</div>
                   {aiDecision ? <h3 className="mt-2 text-lg font-semibold tracking-[-0.04em] sm:text-xl">{aiDecision.decisionTitle}</h3> : null}
                   <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground sm:line-clamp-none">{selected.aiSummary}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {aiDecision ? <Badge variant="secondary" className="w-fit rounded-full px-3 py-1">{aiDecision.source === "llm" ? "LLM advisor" : "Heuristic advisor"}</Badge> : null}
+                  {aiDecision ? <Badge variant="secondary" className="w-fit rounded-full px-3 py-1">Tư vấn lịch</Badge> : null}
                   <Badge variant="outline" className="w-fit rounded-full px-3 py-1">{selected.confidence}% confidence</Badge>
                 </div>
               </div>
@@ -226,7 +226,7 @@ export function BookingFlow() {
                 <Impact label="Dự báo tải" value={`${selected.demandForecast.projectedUtilizationRate}%`} />
                 <Impact label="AI grade" value={selected.aiSignals.decisionGrade} />
               </div>
-              <div className="mt-3 rounded-2xl border bg-background p-3 text-sm leading-6 text-muted-foreground"><span className="font-semibold text-foreground">Forecast:</span> {selected.demandForecast.message}</div>
+              <div className="mt-3 rounded-2xl border bg-background p-3 text-sm leading-6 text-muted-foreground"><span className="font-semibold text-foreground">Dự báo:</span> {selected.demandForecast.message}</div>
               <div className="mt-3 rounded-2xl border bg-background p-3">
                 <div className="font-semibold">Vì sao AI chọn slot này?</div>
                 <ul className="mt-2 space-y-2 text-sm leading-6 text-muted-foreground">
