@@ -188,7 +188,7 @@ function CheckInPass({ appointment, baseUrl }: { appointment: Appointment; baseU
         setQrError(json.error ?? "Không tạo được mã QR");
         return;
       }
-      const nextCheckInUrl = `${baseUrl}/api/check-in?token=${encodeURIComponent(json.data.token)}`;
+      const nextCheckInUrl = `${baseUrl}/check-in?token=${encodeURIComponent(json.data.token)}`;
       setCheckInUrl(nextCheckInUrl);
       QRCode.toDataURL(nextCheckInUrl, { width: 320, margin: 2, errorCorrectionLevel: "M" }).then((value) => {
         if (!cancelled) setQrDataUrl(value);
