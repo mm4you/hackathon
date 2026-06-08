@@ -110,7 +110,7 @@ export async function POST(request: Request) {
       return created;
     });
 
-    invalidateCache("appointments:", "reports:");
+    invalidateCache("appointments:", "reports:", "recommendation:");
     return jsonData(appointment, 201);
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return jsonError("Chưa đăng nhập", 401);

@@ -7,6 +7,21 @@ import { prisma } from "@/lib/prisma";
 import { recommendTimeSlots, type CongestionLevel, type OptimizationPreference, type SlotInput } from "@/lib/schedulingEngine";
 
 const preferences = new Set(["FASTEST", "LOW_CONGESTION", "ECO"]);
+const SLOT_STARTS = [
+  { hour: 6, minute: 0 },
+  { hour: 7, minute: 30 },
+  { hour: 9, minute: 0 },
+  { hour: 10, minute: 30 },
+  { hour: 12, minute: 0 },
+  { hour: 13, minute: 30 },
+  { hour: 15, minute: 0 },
+  { hour: 16, minute: 30 },
+  { hour: 18, minute: 0 },
+  { hour: 19, minute: 30 },
+  { hour: 21, minute: 0 },
+  { hour: 22, minute: 30 },
+];
+const SLOT_DURATION_MINUTES = 90;
 
 type ExistingSlot = {
   id: string;
@@ -34,48 +49,48 @@ export async function POST(request: Request) {
     const preferredTime = new Date(preferredTimeValue);
     if (Number.isNaN(preferredTime.getTime())) return jsonError("Thời gian mong muốn không hợp lệ", 400);
 
-    const cacheKey = `recommendation:${portId}:${preferredTime.toISOString()}:${optimizationPreference}`;
+    const cacheKey = `recommendation:${user.id}:${portId}:${preferredTime.toISOString()}:${optimizationPreference}`;
     const recommendationPayload = await cached(cacheKey, 30_000, async () => {
       const port = await prisma.port.findFirst({ where: { id: portId, isActive: true }, select: { id: true, name: true, latitude: true, longitude: true } });
       if (!port) throw new RecommendationError("PORT_NOT_FOUND");
 
       const dayStart = new Date(preferredTime);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(dayStart);
-    dayEnd.setDate(dayEnd.getDate() + 1);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayEnd.getDate() + 1);
 
-    const existingDaySlots = await prisma.timeSlot.findMany({ where: { portId, startTime: { gte: dayStart, lt: dayEnd } }, select: { capacity: true, bookedCount: true } }) as { capacity: number; bookedCount: number }[];
-    const averageUtilizationRate = existingDaySlots.length ? existingDaySlots.reduce((sum, slot) => sum + (slot.capacity ? slot.bookedCount / slot.capacity : 1), 0) / existingDaySlots.length : 0.45;
-    const portTrafficContext = await getPortTrafficContext({
-      portName: String(port.name),
-      latitude: typeof port.latitude === "number" ? port.latitude : null,
-      longitude: typeof port.longitude === "number" ? port.longitude : null,
-      targetTime: preferredTime,
-      averageUtilizationRate,
-    });
+      const existingDaySlots = await prisma.timeSlot.findMany({ where: { portId, startTime: { gte: dayStart, lt: dayEnd } }, select: { capacity: true, bookedCount: true } }) as { capacity: number; bookedCount: number }[];
+      const averageUtilizationRate = existingDaySlots.length ? existingDaySlots.reduce((sum, slot) => sum + (slot.capacity ? slot.bookedCount / slot.capacity : 1), 0) / existingDaySlots.length : 0.45;
+      const portTrafficContext = await getPortTrafficContext({
+        portName: String(port.name),
+        latitude: typeof port.latitude === "number" ? port.latitude : null,
+        longitude: typeof port.longitude === "number" ? port.longitude : null,
+        targetTime: preferredTime,
+        averageUtilizationRate,
+      });
 
-    await syncSlotsForDay(portId, dayStart, portTrafficContext);
+      await syncSlotsForDay(portId, dayStart, portTrafficContext);
 
-    const slots = (await prisma.timeSlot.findMany({
-      where: { portId, startTime: { gte: dayStart, lt: dayEnd } },
-      select: {
-        id: true,
-        startTime: true,
-        endTime: true,
-        capacity: true,
-        bookedCount: true,
-        congestionLevel: true,
-        estimatedWaitMinutes: true,
-        greenBonus: true,
-        port: { select: { id: true, name: true } },
-      },
-      orderBy: { startTime: "asc" },
-    })) as SlotInput[];
+      const slots = (await prisma.timeSlot.findMany({
+        where: { portId, startTime: { gte: dayStart, lt: dayEnd } },
+        select: {
+          id: true,
+          startTime: true,
+          endTime: true,
+          capacity: true,
+          bookedCount: true,
+          congestionLevel: true,
+          estimatedWaitMinutes: true,
+          greenBonus: true,
+          port: { select: { id: true, name: true } },
+        },
+        orderBy: { startTime: "asc" },
+      })) as SlotInput[];
 
-    const advisorContext = { portName: String(port.name), preferredTime, optimizationPreference: optimizationPreference as OptimizationPreference, portTrafficContext };
-    const recommendations = recommendTimeSlots(slots, optimizationPreference as OptimizationPreference, 4, preferredTime);
-    if (!recommendations.length) return { recommendations: [], message: "Không còn slot khả dụng trong ngày đã chọn" };
-    const aiDecision = await buildAiDecisionAdvisor(recommendations, advisorContext);
+      const advisorContext = { portName: String(port.name), preferredTime, optimizationPreference: optimizationPreference as OptimizationPreference, portTrafficContext };
+      const recommendations = recommendTimeSlots(slots, optimizationPreference as OptimizationPreference, 6, preferredTime);
+      if (!recommendations.length) return { recommendations: [], message: "Không còn slot khả dụng trong ngày đã chọn" };
+      const aiDecision = await buildAiDecisionAdvisor(recommendations, advisorContext);
 
       return { port, preferredTime: preferredTime.toISOString(), optimizationPreference, portTrafficContext, aiDecision, recommendations };
     });
@@ -104,6 +119,10 @@ async function syncSlotsForDay(portId: string, dayStart: Date, context: PortTraf
     select: { id: true, startTime: true, capacity: true, bookedCount: true, updatedAt: true },
   }) as ExistingSlot[];
 
+  const existingStartTimes = new Set(existingSlots.map((slot) => new Date(slot.startTime).getTime()));
+  const missingSlots = buildDesiredSlots(dayStart, portId, context).filter((slot) => !existingStartTimes.has(slot.startTime.getTime()));
+  if (missingSlots.length) await prisma.timeSlot.createMany({ data: missingSlots, skipDuplicates: true });
+
   if (existingSlots.length) {
     const recentlySynced = existingSlots.every((slot) => Date.now() - new Date(slot.updatedAt).getTime() < 5 * 60 * 1000);
     if (recentlySynced) return;
@@ -122,25 +141,34 @@ async function syncSlotsForDay(portId: string, dayStart: Date, context: PortTraf
     return;
   }
 
-  await prisma.timeSlot.createMany({
-    data: [7, 9, 11, 13, 15, 17, 19].map((hour) => {
-      const startTime = new Date(dayStart);
-      startTime.setHours(hour, 0, 0, 0);
-      const endTime = new Date(startTime);
-      endTime.setHours(endTime.getHours() + 2);
-      const profile = buildRealtimeSlotProfile(startTime, 22, 0, true, context);
-      return {
-        portId,
-        startTime,
-        endTime,
-        capacity: 22,
-        bookedCount: profile.initialBookedCount,
-        congestionLevel: profile.congestionLevel,
-        estimatedWaitMinutes: profile.estimatedWaitMinutes,
-        greenBonus: profile.greenBonus,
-      };
-    }),
+  if (!missingSlots.length) await prisma.timeSlot.createMany({ data: buildDesiredSlots(dayStart, portId, context), skipDuplicates: true });
+}
+
+function buildDesiredSlots(dayStart: Date, portId: string, context: PortTrafficContext) {
+  return SLOT_STARTS.map(({ hour, minute }) => {
+    const startTime = new Date(dayStart);
+    startTime.setHours(hour, minute, 0, 0);
+    const endTime = new Date(startTime);
+    endTime.setMinutes(endTime.getMinutes() + SLOT_DURATION_MINUTES);
+    const capacity = capacityForHour(hour);
+    const profile = buildRealtimeSlotProfile(startTime, capacity, 0, true, context);
+    return {
+      portId,
+      startTime,
+      endTime,
+      capacity,
+      bookedCount: profile.initialBookedCount,
+      congestionLevel: profile.congestionLevel,
+      estimatedWaitMinutes: profile.estimatedWaitMinutes,
+      greenBonus: profile.greenBonus,
+    };
   });
+}
+
+function capacityForHour(hour: number) {
+  if (hour <= 8 || hour >= 18) return 18;
+  if (hour >= 15 && hour <= 17) return 20;
+  return 24;
 }
 
 function buildRealtimeSlotProfile(startTime: Date, capacity: number, bookedCount: number, includeSyntheticDemand: boolean, context: PortTrafficContext) {

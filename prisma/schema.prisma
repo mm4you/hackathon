@@ -135,6 +135,7 @@ model TimeSlot {
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 
+  @@unique([portId, startTime])
   @@index([portId, startTime])
   @@index([startTime])
 }

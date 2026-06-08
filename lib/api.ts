@@ -22,6 +22,9 @@ export function noStoreHeaders() {
 }
 
 export async function readJsonObject(request: Request) {
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  if (contentLength > 16_384) return null;
+
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object" || Array.isArray(body)) return null;
   return body as Record<string, unknown>;
@@ -69,13 +72,16 @@ export function isSameOriginRequest(request: Request) {
   if (fetchSite === "cross-site") return false;
 
   const origin = request.headers.get("origin");
-  if (!origin) return true;
-
   const host = request.headers.get("host");
   if (!host) return false;
 
   try {
-    return new URL(origin).host === host;
+    if (origin) return new URL(origin).host === host;
+
+    const referer = request.headers.get("referer");
+    if (referer) return new URL(referer).host === host;
+
+    return fetchSite === "same-origin";
   } catch {
     return false;
   }

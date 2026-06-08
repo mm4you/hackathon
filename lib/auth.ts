@@ -11,7 +11,7 @@ export type TokenPayload = { userId: string; role: UserRole };
 
 export function signAuthToken(payload: TokenPayload) {
   const secret = getJwtSecret();
-  return jwt.sign(payload, secret, { expiresIn: AUTH_TOKEN_TTL_SECONDS });
+  return jwt.sign(payload, secret, { algorithm: "HS256", expiresIn: AUTH_TOKEN_TTL_SECONDS });
 }
 
 export async function setAuthCookie(token: string) {
@@ -39,7 +39,7 @@ export async function getCurrentUser() {
   if (!token) return null;
 
   try {
-    const decoded = jwt.verify(token, secret) as Partial<TokenPayload>;
+    const decoded = jwt.verify(token, secret, { algorithms: ["HS256"] }) as Partial<TokenPayload>;
     if (!isTokenPayload(decoded)) return null;
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },

@@ -16,6 +16,7 @@ const companySelect = {
 export async function GET() {
   try {
     const user = await requireUser();
+    if (user.role === "OPERATOR") return jsonError("Không có quyền xem hồ sơ công ty", 403);
     if (!user.companyId) return jsonData({ company: null, message: "Tài khoản chưa gắn với công ty" });
 
     const company = await prisma.company.findUnique({ where: { id: user.companyId }, select: companySelect });

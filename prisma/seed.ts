@@ -50,9 +50,9 @@ function assertDemoSeedAllowed() {
   }
 }
 
-function addHours(date: Date, hours: number) {
+function addMinutes(date: Date, minutes: number) {
   const next = new Date(date);
-  next.setHours(next.getHours() + hours);
+  next.setMinutes(next.getMinutes() + minutes);
   return next;
 }
 
@@ -161,9 +161,22 @@ async function main() {
 
   const slots: SeedTimeSlot[] = [];
   for (const port of [catLai, hiepPhuoc]) {
-    for (const hour of [7, 9, 11, 13, 15, 17, 19]) {
+    for (const { hour, minute } of [
+      { hour: 6, minute: 0 },
+      { hour: 7, minute: 30 },
+      { hour: 9, minute: 0 },
+      { hour: 10, minute: 30 },
+      { hour: 12, minute: 0 },
+      { hour: 13, minute: 30 },
+      { hour: 15, minute: 0 },
+      { hour: 16, minute: 30 },
+      { hour: 18, minute: 0 },
+      { hour: 19, minute: 30 },
+      { hour: 21, minute: 0 },
+      { hour: 22, minute: 30 },
+    ]) {
       const startTime = new Date(today);
-      startTime.setHours(hour, 0, 0, 0);
+      startTime.setHours(hour, minute, 0, 0);
       const congestionLevel = hour <= 9 ? "HIGH" : hour <= 15 ? "MEDIUM" : "LOW";
       const estimatedWaitMinutes = congestionLevel === "HIGH" ? 45 : congestionLevel === "MEDIUM" ? 25 : 11;
       const greenBonus = congestionLevel === "LOW" ? 60 : congestionLevel === "MEDIUM" ? 28 : 8;
@@ -172,8 +185,8 @@ async function main() {
         data: {
           portId: port.id,
           startTime,
-          endTime: addHours(startTime, 2),
-          capacity: 22,
+          endTime: addMinutes(startTime, 90),
+          capacity: hour <= 8 || hour >= 18 ? 18 : hour >= 15 && hour <= 17 ? 20 : 24,
           bookedCount: congestionLevel === "HIGH" ? 18 : congestionLevel === "MEDIUM" ? 10 : 4,
           congestionLevel,
           estimatedWaitMinutes,
