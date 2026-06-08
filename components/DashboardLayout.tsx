@@ -19,6 +19,7 @@ const navItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", description: "Tổng quan vận hành", roles: ["ADMIN", "OPERATOR", "DRIVER"] },
   { href: "/booking", label: "Đặt lịch", description: "Tìm slot phù hợp", roles: ["DRIVER"] },
   { href: "/appointments", label: "Lịch hẹn", description: "Theo dõi xe vào cảng", roles: ["ADMIN", "OPERATOR", "DRIVER"] },
+  { href: "/voucher-management", label: "Voucher", description: "Duyệt ưu đãi", roles: ["ADMIN"] },
   { href: "/green-credits", label: "Điểm xanh", description: "Lịch sử tín chỉ", roles: ["DRIVER"] },
   { href: "/rewards", label: "Ưu đãi", description: "Đổi điểm lấy quyền lợi", roles: ["DRIVER"] },
   { href: "/reports", label: "Báo cáo", description: "Tác động vận hành", roles: ["ADMIN"] },
