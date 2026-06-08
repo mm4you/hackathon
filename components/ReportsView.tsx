@@ -26,8 +26,8 @@ type ReportData = {
 type ApiResponse<T> = { data?: T; error?: string };
 
 export function ReportsView() {
-  const [report, setReport] = useState<ReportData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [report, setReport] = useState<ReportData | null>(() => readClientCache<ReportData>("reports-cache"));
+  const [loading, setLoading] = useState(() => !readClientCache<ReportData>("reports-cache"));
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -38,6 +38,7 @@ export function ReportsView() {
       if (cancelled) return;
       setLoading(false);
       if (!response.ok) return setError(json.error ?? "Không tải được báo cáo");
+      writeClientCache("reports-cache", json.data ?? null);
       setReport(json.data ?? null);
     }
     load().catch(() => {
@@ -64,6 +65,23 @@ export function ReportsView() {
 
       <section className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-5">
         {report.impactMetrics.map((metric) => <ImpactMetric key={metric.label} label={metric.label} value={metric.value} note={metric.note} />)}
+      </section>
+
+      <section className="grid gap-3 lg:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.2fr)_minmax(0,1fr)] lg:gap-5">
+        <Card className="rounded-[1.35rem] shadow-sm">
+          <CardContent className="p-5">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Tỷ lệ hoàn thành</div>
+            <CompletionDonut completed={report.summary.completedAppointments} total={report.summary.totalAppointments} />
+          </CardContent>
+        </Card>
+        <Panel title="Trạng thái lịch hẹn">
+          {report.appointmentsByStatus.map((item) => <Bar key={item.status} label={statusLabel(item.status)} value={item.count} total={Math.max(1, report.summary.totalAppointments)} tone={statusTone(item.status)} />)}
+        </Panel>
+        <Panel title="Mức ùn tắc slot hôm nay">
+          <Bar label="Ít ùn tắc" value={report.congestionMix.LOW} total={Math.max(1, report.congestionMix.total)} tone="green" />
+          <Bar label="Cần theo dõi" value={report.congestionMix.MEDIUM} total={Math.max(1, report.congestionMix.total)} tone="amber" />
+          <Bar label="Cảnh báo kẹt xe" value={report.congestionMix.HIGH} total={Math.max(1, report.congestionMix.total)} tone="rose" />
+        </Panel>
       </section>
 
       <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(340px,26vw)] xl:gap-5">
@@ -93,16 +111,8 @@ export function ReportsView() {
       </section>
 
       <details className="rounded-[1.2rem] border bg-card p-4 shadow-sm lg:rounded-[1.35rem]">
-        <summary className="cursor-pointer list-none text-sm font-semibold [&::-webkit-details-marker]:hidden">Biểu đồ và bảng xếp hạng</summary>
-      <section className="mt-3 grid gap-3 lg:grid-cols-3 lg:gap-5">
-        <Panel title="Trạng thái lịch hẹn">
-          {report.appointmentsByStatus.map((item) => <Bar key={item.status} label={item.status} value={item.count} total={Math.max(1, report.summary.totalAppointments)} />)}
-        </Panel>
-        <Panel title="Mức ùn tắc slot hôm nay">
-          <Bar label="LOW" value={report.congestionMix.LOW} total={Math.max(1, report.congestionMix.total)} tone="green" />
-          <Bar label="MEDIUM" value={report.congestionMix.MEDIUM} total={Math.max(1, report.congestionMix.total)} tone="amber" />
-          <Bar label="HIGH" value={report.congestionMix.HIGH} total={Math.max(1, report.congestionMix.total)} tone="rose" />
-        </Panel>
+        <summary className="cursor-pointer list-none text-sm font-semibold [&::-webkit-details-marker]:hidden">Bảng xếp hạng tài xế xanh</summary>
+      <section className="mt-3 grid gap-3 lg:grid-cols-1 lg:gap-5">
         <Panel title="Top Green Drivers">
           {report.topDrivers.map((driver) => <DriverRow key={driver.id} driver={driver} />)}
           {!report.topDrivers.length ? <div className="py-6 text-sm text-muted-foreground">Không có dữ liệu xếp hạng để hiển thị.</div> : null}
@@ -111,6 +121,22 @@ export function ReportsView() {
       </details>
     </div>
   );
+}
+
+function readClientCache<T>(key: string) {
+  if (typeof window === "undefined") return null;
+  const value = window.sessionStorage.getItem(key);
+  if (!value) return null;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+}
+
+function writeClientCache<T>(key: string, value: T) {
+  if (typeof window === "undefined" || !value) return;
+  window.sessionStorage.setItem(key, JSON.stringify(value));
 }
 
 function ImpactMetric({ label, value, note }: { label: string; value: string; note: string }) {
@@ -130,8 +156,30 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 }
 
 function Bar({ label, value, total, tone = "slate" }: { label: string; value: number; total: number; tone?: "slate" | "green" | "amber" | "rose" }) {
-  const colors = { slate: "bg-foreground", green: "bg-foreground", amber: "bg-foreground", rose: "bg-foreground" };
-  return <div><div className="flex items-center justify-between text-sm"><span className="font-medium text-muted-foreground">{label}</span><span className="font-semibold">{value}</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className={`h-full rounded-full ${colors[tone]}`} style={{ width: `${Math.round((value / total) * 100)}%` }} /></div></div>;
+  const colors = { slate: "bg-primary", green: "bg-emerald-500", amber: "bg-amber-500", rose: "bg-rose-500" };
+  const percent = Math.round((value / total) * 100);
+  return <div><div className="flex items-center justify-between text-sm"><span className="font-medium text-muted-foreground">{label}</span><span className="font-semibold">{value} ({percent}%)</span></div><div className="mt-2 h-3 overflow-hidden rounded-full bg-muted"><div className={`h-full rounded-full ${colors[tone]}`} style={{ width: `${percent}%` }} /></div></div>;
+}
+
+function CompletionDonut({ completed, total }: { completed: number; total: number }) {
+  const percent = total ? Math.round((completed / total) * 100) : 0;
+  return <div className="mt-4 flex items-center gap-4"><div className="grid size-32 place-items-center rounded-full" style={{ background: `conic-gradient(var(--primary) ${percent * 3.6}deg, var(--muted) 0deg)` }}><div className="grid size-24 place-items-center rounded-full border bg-card"><div className="text-center"><div className="text-2xl font-bold">{percent}%</div><div className="text-[10px] uppercase tracking-wide text-muted-foreground">Hoàn thành</div></div></div></div><div className="min-w-0 text-sm leading-6 text-muted-foreground"><span className="font-semibold text-foreground">{completed}/{total}</span> lịch đã hoàn tất. Chỉ số này thể hiện mức chuyển đổi từ đặt lịch sang xử lý xong tại cổng.</div></div>;
+}
+
+function statusLabel(status: string) {
+  if (status === "PENDING") return "Chờ xử lý";
+  if (status === "COMING") return "Xe sắp đến";
+  if (status === "COMPLETED") return "Hoàn thành";
+  if (status === "LATE") return "Trễ giờ";
+  if (status === "CANCELLED") return "Đã hủy";
+  return status;
+}
+
+function statusTone(status: string): "slate" | "green" | "amber" | "rose" {
+  if (status === "COMPLETED") return "green";
+  if (status === "LATE") return "amber";
+  if (status === "CANCELLED") return "rose";
+  return "slate";
 }
 
 function DriverRow({ driver }: { driver: { name: string; email: string; greenPoints: number } }) {

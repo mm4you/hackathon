@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
 import { publicUser } from "@/lib/api";
+import { cached, invalidateCache } from "@/lib/dataCache";
 
 const COOKIE_NAME = "innovatex_v2_session";
 const AUTH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7;
@@ -41,10 +42,10 @@ export async function getCurrentUser() {
   try {
     const decoded = jwt.verify(token, secret, { algorithms: ["HS256"] }) as Partial<TokenPayload>;
     if (!isTokenPayload(decoded)) return null;
-    const user = await prisma.user.findUnique({
+    const user = await cached(`authUser:${decoded.userId}`, 5_000, () => prisma.user.findUnique({
       where: { id: decoded.userId },
       select: { id: true, companyId: true, name: true, email: true, role: true, greenPoints: true },
-    });
+    }));
     return user ? publicUser(user) : null;
   } catch {
     return null;
@@ -78,4 +79,8 @@ export async function requireOperatorOrAdmin() {
   const user = await requireUser();
   if (user.role !== "ADMIN" && user.role !== "OPERATOR") throw new Error("FORBIDDEN");
   return user;
+}
+
+export function invalidateUserCache(userId: string) {
+  invalidateCache(`authUser:${userId}`);
 }

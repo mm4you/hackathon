@@ -8,20 +8,10 @@ import { recommendTimeSlots, type CongestionLevel, type OptimizationPreference, 
 
 const preferences = new Set(["FASTEST", "LOW_CONGESTION", "ECO"]);
 const SLOT_STARTS = [
-  { hour: 6, minute: 0 },
-  { hour: 7, minute: 30 },
-  { hour: 9, minute: 0 },
-  { hour: 10, minute: 30 },
-  { hour: 12, minute: 0 },
-  { hour: 13, minute: 30 },
-  { hour: 15, minute: 0 },
-  { hour: 16, minute: 30 },
-  { hour: 18, minute: 0 },
-  { hour: 19, minute: 30 },
-  { hour: 21, minute: 0 },
-  { hour: 22, minute: 30 },
+  0, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+  14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
 ];
-const SLOT_DURATION_MINUTES = 90;
+const SLOT_DURATION_MINUTES = 60;
 
 type ExistingSlot = {
   id: string;
@@ -88,7 +78,7 @@ export async function POST(request: Request) {
       })) as SlotInput[];
 
       const advisorContext = { portName: String(port.name), preferredTime, optimizationPreference: optimizationPreference as OptimizationPreference, portTrafficContext };
-      const recommendations = recommendTimeSlots(slots, optimizationPreference as OptimizationPreference, 6, preferredTime);
+      const recommendations = recommendTimeSlots(slots, optimizationPreference as OptimizationPreference, 12, preferredTime);
       if (!recommendations.length) return { recommendations: [], message: "Không còn slot khả dụng trong ngày đã chọn" };
       const aiDecision = await buildAiDecisionAdvisor(recommendations, advisorContext);
 
@@ -145,9 +135,9 @@ async function syncSlotsForDay(portId: string, dayStart: Date, context: PortTraf
 }
 
 function buildDesiredSlots(dayStart: Date, portId: string, context: PortTrafficContext) {
-  return SLOT_STARTS.map(({ hour, minute }) => {
+  return SLOT_STARTS.map((hour) => {
     const startTime = new Date(dayStart);
-    startTime.setHours(hour, minute, 0, 0);
+    startTime.setHours(hour, 0, 0, 0);
     const endTime = new Date(startTime);
     endTime.setMinutes(endTime.getMinutes() + SLOT_DURATION_MINUTES);
     const capacity = capacityForHour(hour);

@@ -1,5 +1,5 @@
 import { isSameOriginRequest, jsonData, jsonError, readJsonObject, stringField } from "@/lib/api";
-import { requireOperatorOrAdmin } from "@/lib/auth";
+import { invalidateUserCache, requireOperatorOrAdmin } from "@/lib/auth";
 import { invalidateCache } from "@/lib/dataCache";
 import { prisma } from "@/lib/prisma";
 
@@ -73,6 +73,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       return tx.appointment.findUnique({ where: { id }, select: appointmentSelect });
     });
 
+    if (updated && "driver" in updated && typeof updated.driver === "object" && updated.driver && "id" in updated.driver && typeof updated.driver.id === "string") invalidateUserCache(updated.driver.id);
     invalidateCache("appointments:", "reports:", "greenCredits:", "recommendation:");
     return jsonData(updated);
   } catch (error) {

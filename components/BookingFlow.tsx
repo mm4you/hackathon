@@ -139,7 +139,7 @@ export function BookingFlow() {
   const selected = recommendations.find((item) => item.id === selectedId) ?? null;
   const selectedAdvice = selected ? `${formatDateTime(selected.startTime)} là khung giờ đang chọn: ${selected.recommendedAction.toLowerCase()} Chờ ${selected.estimatedWaitMinutes} phút, tải ${selected.utilizationRate}%.` : "";
   const selectedRiskSummary = selected ? (aiDecision?.bestSlotId === selected.id ? aiDecision.riskSummary : selected.trafficSignal.message) : "";
-  const alternativeSlots = selected ? recommendations.filter((item) => item.id !== selected.id).slice(0, 2) : [];
+  const alternativeSlots = selected ? recommendations.filter((item) => item.id !== selected.id).slice(0, 10) : [];
 
   return (
     <div className="grid gap-3 xl:grid-cols-[minmax(340px,26vw)_minmax(0,1fr)] xl:gap-5">
@@ -208,7 +208,7 @@ export function BookingFlow() {
               <summary className="cursor-pointer list-none text-sm font-semibold [&::-webkit-details-marker]:hidden">Xem chi tiết AI và phương án khác</summary>
               {aiDecision?.operatorNote ? <div className="mt-3 rounded-xl border bg-background p-3 text-sm leading-6 text-muted-foreground"><span className="font-semibold text-foreground">Operator:</span> {aiDecision.operatorNote}</div> : null}
               {alternativeSlots.length ? (
-                <div className="mt-3 grid gap-2">
+                <div className="mt-3 grid max-h-[22rem] gap-2 overflow-y-auto pr-1">
                   {alternativeSlots.map((item) => (
                     <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} className="rounded-xl border bg-background p-3 text-left text-sm transition hover:bg-muted/40">
                       <div className="font-semibold">{alternativeLabel(item.riskLevel)}</div>

@@ -54,8 +54,8 @@ type TimeSlot = {
 type ApiResponse<T> = { data?: T; error?: string };
 
 export function DashboardOverview() {
-  const [report, setReport] = useState<ReportData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [report, setReport] = useState<ReportData | null>(() => readClientCache<ReportData>("reports-cache"));
+  const [loading, setLoading] = useState(() => !readClientCache<ReportData>("reports-cache"));
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -66,6 +66,7 @@ export function DashboardOverview() {
       if (cancelled) return;
       setLoading(false);
       if (!response.ok) return setError(json.error ?? "Không tải được dashboard");
+      writeClientCache("reports-cache", json.data ?? null);
       setReport(json.data ?? null);
     }
     load().catch(() => {
@@ -152,6 +153,22 @@ export function DashboardOverview() {
       </section>
     </div>
   );
+}
+
+function readClientCache<T>(key: string) {
+  if (typeof window === "undefined") return null;
+  const value = window.sessionStorage.getItem(key);
+  if (!value) return null;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+}
+
+function writeClientCache<T>(key: string, value: T) {
+  if (typeof window === "undefined" || !value) return;
+  window.sessionStorage.setItem(key, JSON.stringify(value));
 }
 
 function formatDateTime(value: string) {

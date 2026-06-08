@@ -36,8 +36,8 @@ const statusActions: { status: AppointmentStatus; label: string; variant?: "defa
 ];
 
 export function AppointmentsBoard({ currentUserRole }: { currentUserRole: CurrentUserRole }) {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [appointments, setAppointments] = useState<Appointment[]>(() => readClientCache<Appointment[]>(`appointments-cache:${currentUserRole}`) ?? []);
+  const [loading, setLoading] = useState(() => !readClientCache<Appointment[]>(`appointments-cache:${currentUserRole}`));
   const [updatingId, setUpdatingId] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -45,14 +45,16 @@ export function AppointmentsBoard({ currentUserRole }: { currentUserRole: Curren
 
   useEffect(() => {
     let cancelled = false;
+    const hasCachedAppointments = Boolean(readClientCache<Appointment[]>(`appointments-cache:${currentUserRole}`));
     async function loadAppointments() {
-      setLoading(true);
+      if (!hasCachedAppointments) setLoading(true);
       setError("");
       const appointmentsResponse = await fetch("/api/appointments");
       const appointmentsJson = (await appointmentsResponse.json()) as ApiResponse<Appointment[]>;
       if (cancelled) return;
       setLoading(false);
       if (!appointmentsResponse.ok) return setError(appointmentsJson.error ?? "Không tải được lịch hẹn");
+      writeClientCache(`appointments-cache:${currentUserRole}`, appointmentsJson.data ?? []);
       setAppointments(appointmentsJson.data ?? []);
     }
     loadAppointments().catch(() => {
@@ -64,7 +66,7 @@ export function AppointmentsBoard({ currentUserRole }: { currentUserRole: Curren
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [currentUserRole]);
 
   async function updateStatus(id: string, status: AppointmentStatus) {
     setUpdatingId(id);
@@ -82,7 +84,10 @@ export function AppointmentsBoard({ currentUserRole }: { currentUserRole: Curren
   async function refreshAppointments() {
     const response = await fetch("/api/appointments");
     const json = (await response.json()) as ApiResponse<Appointment[]>;
-    if (response.ok) setAppointments(json.data ?? []);
+    if (response.ok) {
+      writeClientCache(`appointments-cache:${currentUserRole}`, json.data ?? []);
+      setAppointments(json.data ?? []);
+    }
   }
 
   const activeCount = appointments.filter((item) => item.status === "PENDING" || item.status === "COMING").length;
@@ -167,6 +172,22 @@ export function AppointmentsBoard({ currentUserRole }: { currentUserRole: Curren
       </Card>
     </div>
   );
+}
+
+function readClientCache<T>(key: string) {
+  if (typeof window === "undefined") return null;
+  const value = window.sessionStorage.getItem(key);
+  if (!value) return null;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+}
+
+function writeClientCache<T>(key: string, value: T) {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(key, JSON.stringify(value));
 }
 
 function CheckInPass({ appointment, baseUrl }: { appointment: Appointment; baseUrl: string }) {

@@ -50,7 +50,7 @@ export async function DashboardLayout({ title, description, children, action, cu
                 <div className="text-[11px] text-muted-foreground">{roleLabel(user.role)}</div>
               </div>
             </div>
-            <p className="mt-3 hidden text-xs leading-5 text-muted-foreground lg:block">Quản lý lịch vào cảng, slot trống và điểm xanh cho tài xế.</p>
+            <p className="mt-3 hidden text-xs leading-5 text-muted-foreground lg:block">{roleDescription(user.role)}</p>
           </div>
 
           <MobileNavMenu items={visibleNav} />
@@ -73,6 +73,7 @@ export async function DashboardLayout({ title, description, children, action, cu
               <Badge variant="secondary" className="rounded-full">{roleLabel(user.role)}</Badge>
               <Badge variant="outline" className="rounded-full">{user.greenPoints} điểm</Badge>
             </div>
+            {user.role === "OPERATOR" ? <div className="mt-3 rounded-xl border bg-muted/30 px-3 py-2 text-xs leading-5 text-muted-foreground">Operator chỉ xử lý vận hành tại cổng: xem lịch, kiểm tra QR và cập nhật trạng thái xe. Báo cáo, công ty và voucher thuộc quyền admin.</div> : null}
             </CardContent>
           </Card>
         </aside>
@@ -111,4 +112,10 @@ function roleLabel(role: PublicUser["role"]) {
   if (role === "ADMIN") return "Quản trị";
   if (role === "OPERATOR") return "Điều phối";
   return "Tài xế";
+}
+
+function roleDescription(role: PublicUser["role"]) {
+  if (role === "ADMIN") return "Quản trị báo cáo, voucher, công ty và toàn bộ hoạt động vận hành.";
+  if (role === "OPERATOR") return "Điều phối tại cổng: xem lịch hẹn, kiểm tra QR và cập nhật trạng thái xe.";
+  return "Đặt lịch vào cảng, dùng QR check-in, nhận điểm xanh và đổi ưu đãi.";
 }
