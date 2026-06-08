@@ -1,5 +1,6 @@
 import { isSameOriginRequest, jsonData, jsonError, readJsonObject, stringField } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
+import { cached } from "@/lib/dataCache";
 import { buildAiDecisionAdvisor } from "@/lib/llmAdvisor";
 import { getContextPressure, getPortTrafficContext, type PortTrafficContext } from "@/lib/portTrafficContext";
 import { prisma } from "@/lib/prisma";
@@ -33,10 +34,12 @@ export async function POST(request: Request) {
     const preferredTime = new Date(preferredTimeValue);
     if (Number.isNaN(preferredTime.getTime())) return jsonError("Thời gian mong muốn không hợp lệ", 400);
 
-    const port = await prisma.port.findFirst({ where: { id: portId, isActive: true }, select: { id: true, name: true, latitude: true, longitude: true } });
-    if (!port) return jsonError("Không tìm thấy cảng đang hoạt động", 404);
+    const cacheKey = `recommendation:${portId}:${preferredTime.toISOString()}:${optimizationPreference}`;
+    const recommendationPayload = await cached(cacheKey, 30_000, async () => {
+      const port = await prisma.port.findFirst({ where: { id: portId, isActive: true }, select: { id: true, name: true, latitude: true, longitude: true } });
+      if (!port) throw new RecommendationError("PORT_NOT_FOUND");
 
-    const dayStart = new Date(preferredTime);
+      const dayStart = new Date(preferredTime);
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(dayStart);
     dayEnd.setDate(dayEnd.getDate() + 1);
@@ -71,14 +74,24 @@ export async function POST(request: Request) {
 
     const advisorContext = { portName: String(port.name), preferredTime, optimizationPreference: optimizationPreference as OptimizationPreference, portTrafficContext };
     const recommendations = recommendTimeSlots(slots, optimizationPreference as OptimizationPreference, 4, preferredTime);
-    if (!recommendations.length) return jsonData({ recommendations: [], message: "Không còn slot khả dụng trong ngày đã chọn" });
+    if (!recommendations.length) return { recommendations: [], message: "Không còn slot khả dụng trong ngày đã chọn" };
     const aiDecision = await buildAiDecisionAdvisor(recommendations, advisorContext);
 
-    return jsonData({ port, preferredTime: preferredTime.toISOString(), optimizationPreference, portTrafficContext, aiDecision, recommendations });
+      return { port, preferredTime: preferredTime.toISOString(), optimizationPreference, portTrafficContext, aiDecision, recommendations };
+    });
+
+    return jsonData(recommendationPayload);
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return jsonError("Chưa đăng nhập", 401);
+    if (error instanceof RecommendationError && error.code === "PORT_NOT_FOUND") return jsonError("Không tìm thấy cảng đang hoạt động", 404);
     console.error("Recommendation API failed", error);
     return jsonError("Không tạo được gợi ý khung giờ", 500);
+  }
+}
+
+class RecommendationError extends Error {
+  constructor(public code: "PORT_NOT_FOUND") {
+    super(code);
   }
 }
 

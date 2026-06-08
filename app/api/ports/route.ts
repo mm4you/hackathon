@@ -1,11 +1,12 @@
 import { jsonData, jsonError } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
+import { cached } from "@/lib/dataCache";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
     await requireUser();
-    const ports = await prisma.port.findMany({
+    const ports = await cached("ports:active", 60_000, () => prisma.port.findMany({
       where: { isActive: true },
       select: {
         id: true,
@@ -16,7 +17,7 @@ export async function GET() {
         isActive: true,
       },
       orderBy: { name: "asc" },
-    });
+    }));
 
     return jsonData(ports);
   } catch (error) {

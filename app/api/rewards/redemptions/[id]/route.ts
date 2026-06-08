@@ -1,5 +1,6 @@
 import { isSameOriginRequest, jsonData, jsonError, readJsonObject, stringField } from "@/lib/api";
 import { requireAdmin } from "@/lib/auth";
+import { invalidateCache } from "@/lib/dataCache";
 import { prisma } from "@/lib/prisma";
 
 const statuses = new Set(["PENDING", "APPROVED", "REJECTED", "USED"]);
@@ -39,6 +40,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }) as RedemptionRecord;
 
     await prisma.activityLog.create({ data: { actorId: user.id, type: "REWARD", message: `${user.name} cập nhật voucher ${redemption.reward.title} sang ${status}` } });
+    invalidateCache("redemptions:", "reports:");
     return jsonData(redemption);
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return jsonError("Chưa đăng nhập", 401);

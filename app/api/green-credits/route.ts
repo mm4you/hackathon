@@ -1,11 +1,12 @@
 import { jsonData, jsonError } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
+import { cached } from "@/lib/dataCache";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
     const user = await requireUser();
-    const credits = await prisma.greenCredit.findMany({
+    const credits = await cached(`greenCredits:${user.role}:${user.id}`, 5_000, () => prisma.greenCredit.findMany({
       where: user.role === "DRIVER" ? { userId: user.id } : undefined,
       select: {
         id: true,
@@ -27,7 +28,7 @@ export async function GET() {
       },
       orderBy: { createdAt: "desc" },
       take: 40,
-    });
+    }));
 
     const totalIssued = credits.reduce((sum, item) => sum + Number(item.points ?? 0), 0);
     const totalCo2SavedKg = credits.reduce((sum, item) => sum + Number((item.appointment as { co2SavedKg?: number } | undefined)?.co2SavedKg ?? 0), 0);

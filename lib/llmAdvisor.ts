@@ -125,7 +125,7 @@ export async function buildAiDecisionAdvisor<T extends SlotInput>(recommendation
   const baseUrl = (process.env.LLM_BASE_URL || "https://openrouter.ai/api/v1").replace(/\/$/, "");
   const model = process.env.LLM_MODEL || "openai/gpt-oss-20b:free";
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 350);
+  const timeout = setTimeout(() => controller.abort(), 150);
 
   try {
     const response = await fetch(`${baseUrl}/chat/completions`, {

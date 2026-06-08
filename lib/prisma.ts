@@ -4,6 +4,8 @@ type Delegate<T = Record<string, unknown>> = {
   findUnique(args: unknown): Promise<T | null>;
   findFirst(args: unknown): Promise<T | null>;
   findMany(args: unknown): Promise<T[]>;
+  count(args?: unknown): Promise<number>;
+  aggregate(args: unknown): Promise<unknown>;
   create(args: unknown): Promise<T>;
   update(args: unknown): Promise<T>;
   updateMany(args: unknown): Promise<{ count: number }>;

@@ -1,5 +1,6 @@
 import { jsonData, jsonError } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
+import { cached } from "@/lib/dataCache";
 import { prisma } from "@/lib/prisma";
 
 type Appointment = {
@@ -27,8 +28,7 @@ type TimeSlot = {
   port?: { id: string; name: string };
 };
 
-type GreenCredit = { points: number; appointment?: { co2SavedKg?: number } };
-type Redemption = { id: string };
+type GreenCreditPointsAggregate = { _sum?: { points?: number | null } };
 type Driver = { id: string; name: string; email: string; greenPoints: number };
 type Activity = { id: string; type: string; message: string; createdAt: string | Date };
 
@@ -50,6 +50,16 @@ export async function GET() {
     const user = await requireUser();
     if (user.role === "OPERATOR") return jsonError("Chỉ quản trị viên được xem báo cáo", 403);
 
+    const report = await cached(`reports:${user.role}:${user.id}`, 10_000, () => buildReport(user));
+    return jsonData(report);
+  } catch (error) {
+    if (error instanceof Error && error.message === "UNAUTHORIZED") return jsonError("Chưa đăng nhập", 401);
+    console.error("Reports API failed", error);
+    return jsonError("Không tải được báo cáo", 500);
+  }
+}
+
+async function buildReport(user: { id: string; role: "ADMIN" | "OPERATOR" | "DRIVER"; greenPoints: number }) {
     const isDriver = user.role === "DRIVER";
     const appointmentWhere = isDriver ? { driverId: user.id } : undefined;
     const userWhere = isDriver ? { userId: user.id } : undefined;
@@ -58,10 +68,10 @@ export async function GET() {
     const todayEnd = new Date(todayStart);
     todayEnd.setDate(todayEnd.getDate() + 1);
 
-    const [appointments, credits, redemptions, slots, drivers, activities] = await Promise.all([
+    const [appointments, greenPointsAggregate, redemptionCount, slots, drivers, activities] = await Promise.all([
       prisma.appointment.findMany({ where: appointmentWhere, select: appointmentSelect, orderBy: { createdAt: "desc" }, take: 100 }) as Promise<Appointment[]>,
-      prisma.greenCredit.findMany({ where: userWhere, select: { points: true, appointment: { select: { co2SavedKg: true } } } }) as Promise<GreenCredit[]>,
-      prisma.rewardRedemption.findMany({ where: userWhere, select: { id: true } }) as Promise<Redemption[]>,
+      isDriver ? Promise.resolve({ _sum: { points: user.greenPoints } } as GreenCreditPointsAggregate) : prisma.greenCredit.aggregate({ _sum: { points: true } }) as Promise<GreenCreditPointsAggregate>,
+      prisma.rewardRedemption.count({ where: userWhere }),
       prisma.timeSlot.findMany({
         where: { startTime: { gte: todayStart, lt: todayEnd } },
         select: { id: true, startTime: true, endTime: true, capacity: true, bookedCount: true, congestionLevel: true, estimatedWaitMinutes: true, greenBonus: true, port: { select: { id: true, name: true } } },
@@ -75,7 +85,7 @@ export async function GET() {
     const todayAppointments = appointments.filter((item) => isSameDay(new Date(item.createdAt), todayStart));
     const averageWaitMinutes = average(appointments.map((item) => item.estimatedWaitMinutes));
     const totalCo2SavedKg = sum(appointments.map((item) => item.co2SavedKg));
-    const totalGreenPointsIssued = sum(credits.map((item) => item.points));
+    const totalGreenPointsIssued = greenPointsAggregate._sum?.points ?? 0;
     const lowSlots = slots.filter((slot) => slot.congestionLevel === "LOW").length;
     const mediumSlots = slots.filter((slot) => slot.congestionLevel === "MEDIUM").length;
     const highSlots = slots.filter((slot) => slot.congestionLevel === "HIGH").length;
@@ -84,7 +94,7 @@ export async function GET() {
     const waitMinutesSaved = completedAppointments.reduce((total, item) => total + Math.max(0, 50 - item.estimatedWaitMinutes), 0);
     const costSavingEstimateVnd = Math.round(waitMinutesSaved * 1200 + completedAppointments.length * 14000);
 
-    return jsonData({
+    return {
       scope: isDriver ? "DRIVER" : "OPERATIONS",
       summary: {
         todayAppointments: todayAppointments.length,
@@ -93,7 +103,7 @@ export async function GET() {
         averageWaitMinutes: Math.round(averageWaitMinutes),
         totalCo2SavedKg: Number(totalCo2SavedKg.toFixed(1)),
         totalGreenPointsIssued: isDriver ? user.greenPoints : totalGreenPointsIssued,
-        totalRedemptions: redemptions.length,
+        totalRedemptions: redemptionCount,
         greenSlotRate,
         manualMinutesSaved,
         gateProcessingTargetSeconds: 30,
@@ -112,12 +122,7 @@ export async function GET() {
         { label: "Slot ít ùn tắc", value: `${greenSlotRate}% slot tốt`, note: "Phân bổ xe chủ động khỏi giờ cao điểm." },
         { label: "Chi phí vận hành tiết kiệm", value: `${costSavingEstimateVnd.toLocaleString("vi-VN")}đ`, note: "Ước tính từ giảm thời gian chờ và xử lý cổng." },
       ],
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message === "UNAUTHORIZED") return jsonError("Chưa đăng nhập", 401);
-    console.error("Reports API failed", error);
-    return jsonError("Không tải được báo cáo", 500);
-  }
+    };
 }
 
 function sum(values: number[]) {

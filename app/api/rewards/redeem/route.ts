@@ -1,5 +1,6 @@
 import { isSameOriginRequest, jsonData, jsonError, readJsonObject, stringField } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
+import { invalidateCache } from "@/lib/dataCache";
 import { prisma } from "@/lib/prisma";
 
 type RewardRecord = { id: string; title: string; pointsRequired: number; isActive: boolean };
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
       return created;
     });
 
+    invalidateCache("redemptions:", "reports:");
     return jsonData(redemption, 201);
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return jsonError("Chưa đăng nhập", 401);

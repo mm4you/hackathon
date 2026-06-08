@@ -1,5 +1,6 @@
 import { isSameOriginRequest, jsonData, jsonError, readJsonObject, stringField } from "@/lib/api";
 import { requireOperatorOrAdmin } from "@/lib/auth";
+import { invalidateCache } from "@/lib/dataCache";
 import { prisma } from "@/lib/prisma";
 
 const statuses = new Set(["PENDING", "COMING", "COMPLETED", "LATE", "CANCELLED"]);
@@ -72,6 +73,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       return tx.appointment.findUnique({ where: { id }, select: appointmentSelect });
     });
 
+    invalidateCache("appointments:", "reports:", "greenCredits:");
     return jsonData(updated);
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return jsonError("Chưa đăng nhập", 401);

@@ -83,6 +83,9 @@ model User {
   activityLogs      ActivityLog[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+
+  @@index([companyId])
+  @@index([role, greenPoints])
 }
 
 model Vehicle {
@@ -97,6 +100,9 @@ model Vehicle {
   appointments Appointment[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+
+  @@index([companyId])
+  @@index([driverId, createdAt])
 }
 
 model Port {
@@ -110,6 +116,8 @@ model Port {
   appointments Appointment[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+
+  @@index([isActive, name])
 }
 
 model TimeSlot {
@@ -128,6 +136,7 @@ model TimeSlot {
   updatedAt            DateTime        @updatedAt
 
   @@index([portId, startTime])
+  @@index([startTime])
 }
 
 model Appointment {
@@ -154,6 +163,9 @@ model Appointment {
 
   @@index([driverId, createdAt])
   @@index([status, createdAt])
+  @@index([createdAt])
+  @@index([portId, createdAt])
+  @@index([timeSlotId])
 }
 
 model GreenCredit {
@@ -180,6 +192,8 @@ model Reward {
   redemptions    RewardRedemption[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
+
+  @@index([isActive, pointsRequired])
 }
 
 model RewardRedemption {
@@ -194,6 +208,9 @@ model RewardRedemption {
   updatedAt  DateTime         @updatedAt
 
   @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@index([rewardId])
 }
 
 model ActivityLog {
@@ -207,4 +224,5 @@ model ActivityLog {
 
   @@index([type, createdAt])
   @@index([actorId, createdAt])
+  @@index([createdAt])
 }

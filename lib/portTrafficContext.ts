@@ -90,7 +90,7 @@ async function fetchTomTomTraffic(latitude?: number | null, longitude?: number |
   if (cached && cached.expiresAt > Date.now()) return cached.snapshot;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 300);
+  const timeout = setTimeout(() => controller.abort(), 120);
 
   try {
     const url = new URL(`https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json`);

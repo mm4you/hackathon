@@ -1,5 +1,6 @@
 import { isSameOriginRequest, jsonData, jsonError, readJsonObject, stringField } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
+import { cached, invalidateCache } from "@/lib/dataCache";
 import { prisma } from "@/lib/prisma";
 import { analyzeTimeSlot, type OptimizationPreference, type SlotInput } from "@/lib/schedulingEngine";
 
@@ -25,12 +26,12 @@ const appointmentSelect = {
 export async function GET() {
   try {
     const user = await requireUser();
-    const appointments = await prisma.appointment.findMany({
+    const appointments = await cached(`appointments:${user.role}:${user.id}`, 5_000, () => prisma.appointment.findMany({
       where: user.role === "DRIVER" ? { driverId: user.id } : undefined,
       select: appointmentSelect,
       orderBy: { createdAt: "desc" },
       take: 50,
-    });
+    }));
 
     return jsonData(appointments);
   } catch (error) {
@@ -109,6 +110,7 @@ export async function POST(request: Request) {
       return created;
     });
 
+    invalidateCache("appointments:", "reports:");
     return jsonData(appointment, 201);
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return jsonError("Chưa đăng nhập", 401);

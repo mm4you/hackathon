@@ -1,11 +1,12 @@
 import { jsonData, jsonError } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
+import { cached } from "@/lib/dataCache";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
     const user = await requireUser();
-    const redemptions = await prisma.rewardRedemption.findMany({
+    const redemptions = await cached(`redemptions:${user.role}:${user.id}`, 5_000, () => prisma.rewardRedemption.findMany({
       where: user.role === "DRIVER" ? { userId: user.id } : undefined,
       select: {
         id: true,
@@ -17,7 +18,7 @@ export async function GET() {
       },
       orderBy: { createdAt: "desc" },
       take: 30,
-    });
+    }));
     return jsonData(redemptions);
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return jsonError("Chưa đăng nhập", 401);
