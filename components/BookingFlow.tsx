@@ -137,8 +137,9 @@ export function BookingFlow() {
   }
 
   const selected = recommendations.find((item) => item.id === selectedId) ?? null;
-  const selectedAdvice = selected ? (aiDecision?.bestSlotId === selected.id ? aiDecision.driverAdvice : selected.recommendedAction) : "";
+  const selectedAdvice = selected ? `${formatDateTime(selected.startTime)} là khung giờ đang chọn: ${selected.recommendedAction.toLowerCase()} Chờ ${selected.estimatedWaitMinutes} phút, tải ${selected.utilizationRate}%.` : "";
   const selectedRiskSummary = selected ? (aiDecision?.bestSlotId === selected.id ? aiDecision.riskSummary : selected.trafficSignal.message) : "";
+  const alternativeSlots = selected ? recommendations.filter((item) => item.id !== selected.id).slice(0, 2) : [];
 
   return (
     <div className="grid gap-3 xl:grid-cols-[minmax(340px,26vw)_minmax(0,1fr)] xl:gap-5">
@@ -206,12 +207,12 @@ export function BookingFlow() {
             <details className="mt-3 rounded-2xl border bg-muted/20 p-3 sm:p-4">
               <summary className="cursor-pointer text-sm font-semibold">Xem chi tiết AI và phương án khác</summary>
               {aiDecision?.operatorNote ? <div className="mt-3 rounded-xl border bg-background p-3 text-sm leading-6 text-muted-foreground"><span className="font-semibold text-foreground">Operator:</span> {aiDecision.operatorNote}</div> : null}
-              {aiDecision?.alternatives.length ? (
+              {alternativeSlots.length ? (
                 <div className="mt-3 grid gap-2">
-                  {aiDecision.alternatives.map((item) => (
-                    <button key={item.slotId} type="button" onClick={() => setSelectedId(item.slotId)} className="rounded-xl border bg-background p-3 text-left text-sm transition hover:bg-muted/40">
-                      <div className="font-semibold">{item.label}</div>
-                      <div className="mt-1 leading-6 text-muted-foreground">{item.reason}</div>
+                  {alternativeSlots.map((item) => (
+                    <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} className="rounded-xl border bg-background p-3 text-left text-sm transition hover:bg-muted/40">
+                      <div className="font-semibold">{alternativeLabel(item.riskLevel)}</div>
+                      <div className="mt-1 leading-6 text-muted-foreground">{formatDateTime(item.startTime)}: chờ {item.estimatedWaitMinutes} phút, tải {item.utilizationRate}%, rủi ro {riskLabel(item.riskLevel)}.</div>
                     </button>
                   ))}
                 </div>
@@ -303,6 +304,18 @@ function Impact({ label, value }: { label: string; value: string }) {
 function RiskBadge({ risk, children }: { risk: Recommendation["riskLevel"]; children: React.ReactNode }) {
   const className = risk === "LOW" ? "" : risk === "MEDIUM" ? "" : "";
   return <Badge variant="outline" className={`w-fit rounded-full px-3 py-1 ${className}`}>{children}</Badge>;
+}
+
+function alternativeLabel(risk: Recommendation["riskLevel"]) {
+  if (risk === "LOW") return "Phương án an toàn";
+  if (risk === "MEDIUM") return "Phương án dự phòng";
+  return "Chỉ dùng khi bắt buộc";
+}
+
+function riskLabel(risk: Recommendation["riskLevel"]) {
+  if (risk === "LOW") return "thấp";
+  if (risk === "MEDIUM") return "vừa";
+  return "cao";
 }
 
 function EmptyStep({ title, text }: { title: string; text: string }) {

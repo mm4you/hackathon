@@ -140,10 +140,15 @@ export function DashboardOverview() {
           {report.recentAppointments.map((item) => <AppointmentRow key={item.id} appointment={item} />)}
           {!report.recentAppointments.length ? <Empty text="Chưa có lịch hẹn." /> : null}
         </Panel>
-        <Panel title="Hoạt động gần đây">
-          {report.recentActivities.map((item) => <ActivityRow key={item.id} activity={item} />)}
-          {!report.recentActivities.length ? <Empty text="Chưa có activity log." /> : null}
-        </Panel>
+        <Card className="gap-0 overflow-hidden rounded-[1.2rem] py-0 shadow-sm lg:rounded-[1.35rem]">
+          <details>
+            <summary className="cursor-pointer border-b px-4 py-3 font-semibold sm:px-5 sm:py-4">Hoạt động gần đây</summary>
+            <div className="divide-y">
+              {report.recentActivities.map((item) => <ActivityRow key={item.id} activity={item} />)}
+              {!report.recentActivities.length ? <Empty text="Chưa có hoạt động gần đây." /> : null}
+            </div>
+          </details>
+        </Card>
       </section>
     </div>
   );

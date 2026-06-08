@@ -75,6 +75,26 @@ export function RewardsCatalog() {
         <div className="mt-4 inline-flex rounded-full border bg-muted/30 px-3 py-1 text-sm font-semibold">Điểm hiện tại: {user?.greenPoints ?? 0}</div>
       </section>
 
+      <section className="overflow-hidden rounded-[1.2rem] border bg-card shadow-sm lg:rounded-[1.35rem]">
+        <div className="border-b px-4 py-3 font-semibold sm:px-5 sm:py-4">Ví ưu đãi của tôi</div>
+        <div className="divide-y">
+          {redemptions.map((item) => (
+            <div key={item.id} className="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <div className="min-w-0">
+                <div className="font-medium">{item.reward.title}</div>
+                <div className="mt-1 text-sm leading-6 text-muted-foreground">{voucherInstruction(item.reward.type)}</div>
+                <div className="mt-2 truncate rounded-xl border bg-muted/20 px-3 py-2 font-mono text-[11px] text-muted-foreground">Mã ví: {item.id.slice(-8).toUpperCase()}</div>
+              </div>
+              <div className="flex items-center gap-2 sm:flex-col sm:items-end">
+                <Status value={item.status} />
+                <span className="text-xs text-muted-foreground">{formatDateTime(item.createdAt)}</span>
+              </div>
+            </div>
+          ))}
+          {!redemptions.length ? <div className="px-5 py-8 text-center text-sm text-muted-foreground">Chưa có ưu đãi trong ví. Đổi điểm để nhận voucher.</div> : null}
+        </div>
+      </section>
+
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {rewards.map((reward) => {
           const enoughPoints = (user?.greenPoints ?? 0) >= reward.pointsRequired;
@@ -101,8 +121,8 @@ export function RewardsCatalog() {
         {!rewards.length ? <div className="rounded-[1.7rem] border bg-card p-6 text-sm text-muted-foreground">Chưa có ưu đãi active.</div> : null}
       </section>
 
-      <section className="overflow-hidden rounded-[1.2rem] border bg-card shadow-sm lg:rounded-[1.35rem]">
-        <div className="border-b px-4 py-3 font-semibold sm:px-5 sm:py-4">Lịch sử đổi ưu đãi</div>
+      <details className="overflow-hidden rounded-[1.2rem] border bg-card shadow-sm lg:rounded-[1.35rem]">
+        <summary className="cursor-pointer border-b px-4 py-3 font-semibold sm:px-5 sm:py-4">Lịch sử đổi ưu đãi</summary>
         <div className="divide-y">
           {redemptions.map((item) => (
             <div key={item.id} className="flex flex-col justify-between gap-3 px-5 py-4 sm:flex-row sm:items-center">
@@ -115,7 +135,7 @@ export function RewardsCatalog() {
           ))}
           {!redemptions.length ? <div className="px-5 py-8 text-center text-sm text-muted-foreground">Chưa đổi ưu đãi.</div> : null}
         </div>
-      </section>
+      </details>
     </div>
   );
 }
@@ -134,5 +154,21 @@ function formatDateTime(value: string) {
 
 function Status({ value }: { value: string }) {
   const className = value === "REJECTED" ? "border-destructive/30 bg-destructive/10 text-destructive" : "bg-muted/30";
-  return <span className={`w-fit rounded-full border px-3 py-1 text-xs font-semibold ${className}`}>{value}</span>;
+  return <span className={`w-fit rounded-full border px-3 py-1 text-xs font-semibold ${className}`}>{statusLabel(value)}</span>;
+}
+
+function statusLabel(value: string) {
+  if (value === "PENDING") return "Chờ duyệt";
+  if (value === "APPROVED") return "Dùng được";
+  if (value === "USED") return "Đã dùng";
+  if (value === "REJECTED") return "Từ chối";
+  return value;
+}
+
+function voucherInstruction(type: string) {
+  if (type === "PRIORITY_GATE") return "Dùng tại cổng khi check-in để xin ưu tiên xử lý.";
+  if (type === "SERVICE_DISCOUNT") return "Xuất mã ví cho quầy dịch vụ/cảng để áp dụng giảm phí.";
+  if (type === "FUEL_VOUCHER") return "Dùng mã ví tại đối tác nhiên liệu hoặc quầy xác nhận.";
+  if (type === "MAINTENANCE_VOUCHER") return "Dùng mã ví khi đặt lịch bảo dưỡng với đối tác.";
+  return "Dùng làm chứng nhận tài xế xanh trong hồ sơ vận hành.";
 }
