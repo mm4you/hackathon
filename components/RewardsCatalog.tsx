@@ -66,6 +66,12 @@ export function RewardsCatalog() {
 
   if (loading) return <div className="rounded-[1.5rem] border bg-card p-6 text-sm text-muted-foreground shadow-sm">Đang tải ưu đãi...</div>;
 
+  const walletStats = {
+    total: redemptions.length,
+    usable: redemptions.filter((item) => item.status === "APPROVED").length,
+    pending: redemptions.filter((item) => item.status === "PENDING").length,
+  };
+
   return (
     <div className="space-y-3 sm:space-y-4">
       {message ? <p className="rounded-xl border bg-muted/30 px-4 py-3 text-sm">{message}</p> : null}
@@ -78,17 +84,38 @@ export function RewardsCatalog() {
         <div className="mt-4 inline-flex rounded-full border bg-muted/30 px-3 py-1 text-sm font-semibold">Điểm hiện tại: {user?.greenPoints ?? 0}</div>
       </section>
 
-      <section className="overflow-hidden rounded-[1.2rem] border bg-card shadow-sm lg:rounded-[1.35rem]">
-        <div className="border-b px-4 py-3 font-semibold sm:px-5 sm:py-4">Ví ưu đãi của tôi</div>
-        <div className="divide-y">
+      <details className="overflow-hidden rounded-[1.2rem] border bg-card shadow-sm lg:rounded-[1.35rem]">
+        <summary className="cursor-pointer list-none border-b px-4 py-3 sm:px-5 sm:py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="font-semibold">Ví ưu đãi của tôi</div>
+              <div className="mt-1 text-sm text-muted-foreground">Bấm để xem voucher đã đổi.</div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center text-xs sm:min-w-72">
+              <div className="rounded-2xl border bg-muted/20 px-3 py-2">
+                <div className="text-lg font-bold text-foreground">{walletStats.total}</div>
+                <div className="text-muted-foreground">Tổng</div>
+              </div>
+              <div className="rounded-2xl border bg-muted/20 px-3 py-2">
+                <div className="text-lg font-bold text-foreground">{walletStats.usable}</div>
+                <div className="text-muted-foreground">Dùng được</div>
+              </div>
+              <div className="rounded-2xl border bg-muted/20 px-3 py-2">
+                <div className="text-lg font-bold text-foreground">{walletStats.pending}</div>
+                <div className="text-muted-foreground">Chờ duyệt</div>
+              </div>
+            </div>
+          </div>
+        </summary>
+        <div className="max-h-[24rem] divide-y overflow-y-auto overscroll-contain sm:max-h-[28rem]">
           {redemptions.map((item) => (
-            <div key={item.id} className="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <div key={item.id} className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-5 sm:py-4">
               <div className="min-w-0">
-                <div className="font-medium">{item.reward.title}</div>
-                <div className="mt-1 text-sm leading-6 text-muted-foreground">{voucherInstruction(item.reward.type)}</div>
+                <div className="truncate font-medium">{item.reward.title}</div>
+                <div className="mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground">{voucherInstruction(item.reward.type)}</div>
                 <div className="mt-2 truncate rounded-xl border bg-muted/20 px-3 py-2 font-mono text-[11px] text-muted-foreground">Mã voucher: {voucherCode(item)}</div>
               </div>
-              <div className="flex items-center gap-2 sm:flex-col sm:items-end">
+              <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-end">
                 <Status value={item.status} />
                 <VoucherQr redemption={item} />
                 <span className="text-xs text-muted-foreground">{formatDateTime(item.createdAt)}</span>
@@ -97,7 +124,7 @@ export function RewardsCatalog() {
           ))}
           {!redemptions.length ? <div className="px-5 py-8 text-center text-sm text-muted-foreground">Chưa có ưu đãi trong ví. Đổi điểm để nhận voucher.</div> : null}
         </div>
-      </section>
+      </details>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {rewards.map((reward) => {
