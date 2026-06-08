@@ -34,7 +34,7 @@ export async function PATCH(request: Request) {
     if (!isSameOriginRequest(request)) return jsonError("Yêu cầu không hợp lệ", 403);
 
     const user = await requireUser();
-    if (user.role === "DRIVER") return jsonError("Chỉ admin/operator được cập nhật công ty", 403);
+    if (user.role !== "ADMIN") return jsonError("Chỉ quản trị viên được cập nhật công ty", 403);
     if (!user.companyId) return jsonError("Tài khoản chưa gắn với công ty", 400);
 
     const body = await readJsonObject(request);

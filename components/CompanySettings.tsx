@@ -63,7 +63,7 @@ export function CompanySettings() {
     setMessage("Đã cập nhật hồ sơ công ty.");
   }
 
-  const canEdit = currentUser?.role === "ADMIN" || currentUser?.role === "OPERATOR";
+  const canEdit = currentUser?.role === "ADMIN";
 
   if (loading) return <div className="rounded-[1.5rem] border bg-card p-6 text-sm text-muted-foreground shadow-sm">Đang tải hồ sơ công ty...</div>;
 
@@ -82,7 +82,7 @@ export function CompanySettings() {
         <>
           <section className="grid gap-3 md:grid-cols-3">
             <Summary label="Loại tổ chức" value={companyTypeLabel(company.type)} text="Phục vụ phân quyền và báo cáo theo tổ chức." />
-            <Summary label="Người dùng" value={String(company.users.length)} text="Admin, operator và driver thuộc cùng tổ chức." />
+            <Summary label="Người dùng" value={String(company.users.length)} text="Quản trị, điều phối và tài xế thuộc cùng tổ chức." />
             <Summary label="Phương tiện" value={String(company.vehicles.length)} text="Fleet gắn với company để mở rộng quản lý đội xe." />
           </section>
 
@@ -90,7 +90,7 @@ export function CompanySettings() {
             <form onSubmit={save} className="rounded-[1.35rem] border bg-card p-5 shadow-sm">
               <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Company Profile</div>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">{company.name}</h2>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">Hồ sơ doanh nghiệp giúp sản phẩm nhìn như nền tảng logistics/cảng có thể bán và mở rộng sau này.</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">Quản trị viên cập nhật thông tin tổ chức để đồng bộ đội xe, thành viên và báo cáo.</p>
 
               <div className="mt-5 grid gap-4">
                 <Field label="Tên công ty" value={form.name} disabled={!canEdit} onChange={(value) => setForm({ ...form, name: value })} />

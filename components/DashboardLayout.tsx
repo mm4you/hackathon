@@ -21,8 +21,8 @@ const navItems: NavItem[] = [
   { href: "/appointments", label: "Lịch hẹn", description: "Theo dõi xe vào cảng", roles: ["ADMIN", "OPERATOR", "DRIVER"] },
   { href: "/green-credits", label: "Điểm xanh", description: "Lịch sử tín chỉ", roles: ["DRIVER"] },
   { href: "/rewards", label: "Ưu đãi", description: "Đổi điểm lấy quyền lợi", roles: ["DRIVER"] },
-  { href: "/reports", label: "Báo cáo", description: "Tác động vận hành", roles: ["ADMIN", "OPERATOR"] },
-  { href: "/settings/company", label: "Công ty", description: "Hồ sơ tổ chức", roles: ["ADMIN", "OPERATOR", "DRIVER"] },
+  { href: "/reports", label: "Báo cáo", description: "Tác động vận hành", roles: ["ADMIN"] },
+  { href: "/settings/company", label: "Công ty", description: "Hồ sơ tổ chức", roles: ["ADMIN", "DRIVER"] },
 ];
 
 export async function DashboardLayout({ title, description, children, action, currentUser }: { title: string; description: string; children: React.ReactNode; action?: React.ReactNode; currentUser?: PublicUser | null }) {
@@ -46,7 +46,7 @@ export async function DashboardLayout({ title, description, children, action, cu
               </div>
               <div className="min-w-0 text-right lg:hidden">
                 <div className="truncate text-sm font-semibold">{user.name}</div>
-                <div className="text-[11px] text-muted-foreground">{user.role}</div>
+                <div className="text-[11px] text-muted-foreground">{roleLabel(user.role)}</div>
               </div>
             </div>
             <p className="mt-3 hidden text-xs leading-5 text-muted-foreground lg:block">Quản lý lịch vào cảng, slot trống và điểm xanh cho tài xế.</p>
@@ -69,7 +69,7 @@ export async function DashboardLayout({ title, description, children, action, cu
             <div className="mt-2 font-semibold">{user.name}</div>
             <div className="mt-1 text-xs text-muted-foreground">{user.email}</div>
             <div className="mt-3 flex flex-wrap gap-2">
-              <Badge variant="secondary" className="rounded-full">{user.role}</Badge>
+              <Badge variant="secondary" className="rounded-full">{roleLabel(user.role)}</Badge>
               <Badge variant="outline" className="rounded-full">{user.greenPoints} điểm</Badge>
             </div>
             </CardContent>
@@ -104,4 +104,10 @@ export async function DashboardLayout({ title, description, children, action, cu
       </div>
     </main>
   );
+}
+
+function roleLabel(role: PublicUser["role"]) {
+  if (role === "ADMIN") return "Quản trị";
+  if (role === "OPERATOR") return "Điều phối";
+  return "Tài xế";
 }
