@@ -48,6 +48,7 @@ export default async function CheckInPage({ searchParams }: CheckInPageProps) {
   }) as CheckInAppointment | null;
 
   if (!appointment) return <CheckInShell><InvalidCard message="Không tìm thấy lịch hẹn." /></CheckInShell>;
+  if (appointment.status === "COMPLETED" || appointment.status === "CANCELLED") return <CheckInShell><InvalidCard title="Lịch đã đóng" message="Lịch này đã hoàn thành hoặc đã hủy, không thể dùng QR để check-in." /></CheckInShell>;
 
   return (
     <CheckInShell>

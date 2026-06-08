@@ -24,6 +24,7 @@ export async function GET(request: Request) {
       },
     });
     if (!redemption) return jsonError("Không tìm thấy voucher", 404);
+    if (redemption.status === "USED" || redemption.status === "REJECTED") return jsonError("Voucher không còn hiệu lực", 400);
 
     return jsonData({ redemption });
   } catch (error) {

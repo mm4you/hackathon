@@ -24,6 +24,7 @@ export async function GET(request: Request) {
       },
     });
     if (!appointment) return jsonError("Không tìm thấy lịch hẹn", 404);
+    if (appointment.status === "COMPLETED" || appointment.status === "CANCELLED") return jsonError("Lịch đã đóng", 400);
 
     return jsonData({ appointment });
   } catch (error) {

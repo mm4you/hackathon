@@ -48,6 +48,8 @@ const appointmentSelect = {
 export async function GET() {
   try {
     const user = await requireUser();
+    if (user.role === "OPERATOR") return jsonError("Chỉ quản trị viên được xem báo cáo", 403);
+
     const isDriver = user.role === "DRIVER";
     const appointmentWhere = isDriver ? { driverId: user.id } : undefined;
     const userWhere = isDriver ? { userId: user.id } : undefined;
