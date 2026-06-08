@@ -8,6 +8,7 @@ type Reward = { id: string; title: string; description: string; pointsRequired: 
 type Redemption = { id: string; pointsUsed: number; status: string; createdAt: string; reward: Reward };
 type CurrentUser = { greenPoints: number; role: "ADMIN" | "OPERATOR" | "DRIVER" };
 type ApiResponse<T> = { data?: T; error?: string };
+type VoucherTokenResponse = { token: string; expiresInSeconds: number };
 
 export function RewardsCatalog() {
   const [user, setUser] = useState<CurrentUser | null>(null);
@@ -163,13 +164,24 @@ function Status({ value }: { value: string }) {
 function VoucherQr({ redemption }: { redemption: Redemption }) {
   const [open, setOpen] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
+  const [qrError, setQrError] = useState("");
+  const [verifyUrl, setVerifyUrl] = useState("");
   const code = voucherCode(redemption);
 
   async function openQr() {
     setOpen(true);
     if (qrDataUrl) return;
-    const qrPayload = JSON.stringify({ type: "INNOVATEX_VOUCHER", code, reward: redemption.reward.title, status: redemption.status });
-    const nextQr = await QRCode.toDataURL(qrPayload, { width: 280, margin: 2, errorCorrectionLevel: "M" }).catch(() => "");
+    setQrError("");
+    const response = await fetch(`/api/rewards/redemptions/${redemption.id}/voucher-token`, { method: "POST" });
+    const json = (await response.json()) as ApiResponse<VoucherTokenResponse>;
+    if (!response.ok || !json.data?.token) {
+      setQrError(json.error ?? "Không tạo được QR voucher");
+      return;
+    }
+    const nextVerifyUrl = `${window.location.origin}/api/vouchers/verify?token=${encodeURIComponent(json.data.token)}`;
+    setVerifyUrl(nextVerifyUrl);
+    const nextQr = await QRCode.toDataURL(nextVerifyUrl, { width: 280, margin: 2, errorCorrectionLevel: "M" }).catch(() => "");
+    if (!nextQr) setQrError("Không tạo được QR voucher");
     setQrDataUrl(nextQr);
   }
 
@@ -183,8 +195,9 @@ function VoucherQr({ redemption }: { redemption: Redemption }) {
             <h3 className="mt-2 text-xl font-semibold tracking-[-0.04em]">{redemption.reward.title}</h3>
             <div className="mt-2 rounded-xl border bg-muted/20 px-3 py-2 font-mono text-sm font-semibold">{code}</div>
             <div className="mt-4 rounded-[1.4rem] border bg-white p-4">
-              {qrDataUrl ? <Image src={qrDataUrl} alt={`QR voucher ${code}`} width={260} height={260} unoptimized className="mx-auto size-[240px] sm:size-[260px]" /> : <div className="mx-auto grid size-[240px] place-items-center text-sm text-muted-foreground">Đang tạo QR...</div>}
+              {qrDataUrl ? <Image src={qrDataUrl} alt={`QR voucher ${code}`} width={260} height={260} unoptimized className="mx-auto size-[240px] sm:size-[260px]" /> : <div className="mx-auto grid size-[240px] place-items-center text-sm text-muted-foreground">{qrError || "Đang tạo QR..."}</div>}
             </div>
+            {verifyUrl ? <div className="mt-3 truncate rounded-xl border bg-background px-3 py-2 font-mono text-[11px] text-muted-foreground">{verifyUrl}</div> : null}
             <p className="mt-3 text-sm leading-6 text-muted-foreground">Đưa mã hoặc QR này cho cổng/quầy dịch vụ để đối chiếu ưu đãi.</p>
             <button type="button" onClick={() => setOpen(false)} className="mt-4 h-11 w-full rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground">Đóng</button>
           </div>
@@ -208,8 +221,8 @@ function statusLabel(value: string) {
 
 function voucherInstruction(type: string) {
   if (type === "PRIORITY_GATE") return "Dùng tại cổng khi check-in để xin ưu tiên xử lý.";
-  if (type === "SERVICE_DISCOUNT") return "Xuất mã ví cho quầy dịch vụ/cảng để áp dụng giảm phí.";
-  if (type === "FUEL_VOUCHER") return "Dùng mã ví tại đối tác nhiên liệu hoặc quầy xác nhận.";
-  if (type === "MAINTENANCE_VOUCHER") return "Dùng mã ví khi đặt lịch bảo dưỡng với đối tác.";
+  if (type === "SERVICE_DISCOUNT") return "Xuất mã voucher cho quầy dịch vụ/cảng để áp dụng giảm phí.";
+  if (type === "FUEL_VOUCHER") return "Dùng mã voucher tại đối tác nhiên liệu hoặc quầy xác nhận.";
+  if (type === "MAINTENANCE_VOUCHER") return "Dùng mã voucher khi đặt lịch bảo dưỡng với đối tác.";
   return "Dùng làm chứng nhận tài xế xanh trong hồ sơ vận hành.";
 }

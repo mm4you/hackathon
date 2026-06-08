@@ -142,7 +142,7 @@ npx prisma db seed
 │       ├── check-in/                 API xac thuc token QR cho cong/operator
 │       ├── recommendation/           GreenSlot AI recommendation
 │       ├── green-credits/            Lich su diem xanh
-│       ├── rewards/                  Danh sach uu dai, redeem, vi voucher
+│       ├── rewards/                  Danh sach uu dai, redeem, vi uu dai/voucher
 │       ├── reports/                  Dashboard/report data
 │       ├── vehicles/                 Danh sach xe theo role
 │       ├── ports/                    Danh sach cang active
@@ -154,7 +154,7 @@ npx prisma db seed
 │   ├── BookingFlow.tsx               Form dat lich, slot recommendation, xac nhan
 │   ├── AppointmentsBoard.tsx         Lich hen, cap nhat status, QR popup
 │   ├── GreenCreditsPanel.tsx         Diem xanh va lich su diem
-│   ├── RewardsCatalog.tsx            Doi uu dai va vi voucher
+│   ├── RewardsCatalog.tsx            Doi uu dai va vi uu dai/voucher
 │   ├── ReportsView.tsx               Bao cao tac dong chi tiet
 │   ├── CompanySettings.tsx           Ho so cong ty, user, fleet
 │   └── ui/                           Component foundation tu shadcn-style

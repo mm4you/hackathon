@@ -18,7 +18,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (!appointment) return jsonError("Không tìm thấy lịch hẹn", 404);
     if (appointment.status === "COMPLETED" || appointment.status === "CANCELLED") return jsonError("Lịch đã đóng", 400);
 
-    return jsonData({ token: createCheckInToken(appointment.id), expiresInSeconds: 60 * 60 * 4 });
+    return jsonData({ token: createCheckInToken(appointment.id), expiresInSeconds: 60 * 60 });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return jsonError("Chưa đăng nhập", 401);
     console.error("Create check-in token failed", error);

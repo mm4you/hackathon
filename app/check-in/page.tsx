@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { verifyCheckInToken } from "@/lib/checkInToken";
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 type CheckInPageProps = {
@@ -22,6 +23,10 @@ type CheckInAppointment = {
 export const dynamic = "force-dynamic";
 
 export default async function CheckInPage({ searchParams }: CheckInPageProps) {
+  const user = await getCurrentUser();
+  if (!user) return <CheckInShell><InvalidCard title="Cần đăng nhập" message="Vui lòng đăng nhập tài khoản cổng hoặc điều phối để xem thông tin QR." /></CheckInShell>;
+  if (user.role !== "ADMIN" && user.role !== "OPERATOR") return <CheckInShell><InvalidCard title="Không có quyền" message="Chỉ tài khoản cổng hoặc điều phối được xem thông tin check-in." /></CheckInShell>;
+
   const { token = "" } = await searchParams;
   const payload = verifyCheckInToken(token);
 
@@ -95,8 +100,8 @@ function CheckInShell({ children }: { children: React.ReactNode }) {
   return <main className="dark min-h-dvh bg-background p-3 text-foreground sm:p-6"><div className="mx-auto max-w-xl">{children}</div></main>;
 }
 
-function InvalidCard({ message = "Mã QR không hợp lệ hoặc đã hết hạn." }: { message?: string }) {
-  return <Card className="rounded-[1.5rem] shadow-sm"><CardContent className="p-5"><CardTitle className="text-xl">Không thể xác thực</CardTitle><CardDescription className="mt-2 leading-6">{message}</CardDescription></CardContent></Card>;
+function InvalidCard({ title = "Không thể xác thực", message = "Mã QR không hợp lệ hoặc đã hết hạn." }: { title?: string; message?: string }) {
+  return <Card className="rounded-[1.5rem] shadow-sm"><CardContent className="p-5"><CardTitle className="text-xl">{title}</CardTitle><CardDescription className="mt-2 leading-6">{message}</CardDescription></CardContent></Card>;
 }
 
 function InfoGroup({ title, items }: { title: string; items: string[][] }) {
