@@ -1,6 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 
 type Reward = { id: string; title: string; description: string; pointsRequired: number; type: string };
 type Redemption = { id: string; pointsUsed: number; status: string; createdAt: string; reward: Reward };
@@ -83,10 +85,11 @@ export function RewardsCatalog() {
               <div className="min-w-0">
                 <div className="font-medium">{item.reward.title}</div>
                 <div className="mt-1 text-sm leading-6 text-muted-foreground">{voucherInstruction(item.reward.type)}</div>
-                <div className="mt-2 truncate rounded-xl border bg-muted/20 px-3 py-2 font-mono text-[11px] text-muted-foreground">Mã ví: {item.id.slice(-8).toUpperCase()}</div>
+                <div className="mt-2 truncate rounded-xl border bg-muted/20 px-3 py-2 font-mono text-[11px] text-muted-foreground">Mã voucher: {voucherCode(item)}</div>
               </div>
               <div className="flex items-center gap-2 sm:flex-col sm:items-end">
                 <Status value={item.status} />
+                <VoucherQr redemption={item} />
                 <span className="text-xs text-muted-foreground">{formatDateTime(item.createdAt)}</span>
               </div>
             </div>
@@ -155,6 +158,44 @@ function formatDateTime(value: string) {
 function Status({ value }: { value: string }) {
   const className = value === "REJECTED" ? "border-destructive/30 bg-destructive/10 text-destructive" : "bg-muted/30";
   return <span className={`w-fit rounded-full border px-3 py-1 text-xs font-semibold ${className}`}>{statusLabel(value)}</span>;
+}
+
+function VoucherQr({ redemption }: { redemption: Redemption }) {
+  const [open, setOpen] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState("");
+  const code = voucherCode(redemption);
+
+  async function openQr() {
+    setOpen(true);
+    if (qrDataUrl) return;
+    const qrPayload = JSON.stringify({ type: "INNOVATEX_VOUCHER", code, reward: redemption.reward.title, status: redemption.status });
+    const nextQr = await QRCode.toDataURL(qrPayload, { width: 280, margin: 2, errorCorrectionLevel: "M" }).catch(() => "");
+    setQrDataUrl(nextQr);
+  }
+
+  return (
+    <>
+      <button type="button" onClick={openQr} className="rounded-full border px-3 py-1 text-xs font-semibold transition hover:bg-muted/40">QR voucher</button>
+      {open ? (
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-black/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="QR voucher">
+          <div className="w-full max-w-sm rounded-[1.6rem] border bg-card p-4 text-center shadow-2xl">
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Voucher ưu đãi</div>
+            <h3 className="mt-2 text-xl font-semibold tracking-[-0.04em]">{redemption.reward.title}</h3>
+            <div className="mt-2 rounded-xl border bg-muted/20 px-3 py-2 font-mono text-sm font-semibold">{code}</div>
+            <div className="mt-4 rounded-[1.4rem] border bg-white p-4">
+              {qrDataUrl ? <Image src={qrDataUrl} alt={`QR voucher ${code}`} width={260} height={260} unoptimized className="mx-auto size-[240px] sm:size-[260px]" /> : <div className="mx-auto grid size-[240px] place-items-center text-sm text-muted-foreground">Đang tạo QR...</div>}
+            </div>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Đưa mã hoặc QR này cho cổng/quầy dịch vụ để đối chiếu ưu đãi.</p>
+            <button type="button" onClick={() => setOpen(false)} className="mt-4 h-11 w-full rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground">Đóng</button>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function voucherCode(redemption: Redemption) {
+  return `VC-${redemption.id.slice(-8).toUpperCase()}`;
 }
 
 function statusLabel(value: string) {
