@@ -121,12 +121,63 @@ npx prisma db seed
 ## Cau Truc Chinh
 
 ```text
-app/                 Next.js App Router pages va API routes dang active
-components/          Product UI components va shadcn/ui foundation
-lib/                 Prisma, auth, scheduling engine, AI advisor, utilities
-prisma/              PostgreSQL schema, migrations, demo seed
-docs/rebuild-notes/  Notes theo module va demo script
+.
+├── app/                              Next.js App Router
+│   ├── page.tsx                      Landing page gioi thieu san pham
+│   ├── layout.tsx                    Root layout, font, metadata, viewport
+│   ├── globals.css                   Theme tokens, global CSS, mobile background
+│   ├── login/                        Trang dang nhap
+│   ├── register/                     Trang dang ky tai xe
+│   ├── dashboard/                    Tong quan van hanh
+│   ├── booking/                      Flow dat lich va goi y slot
+│   ├── appointments/                 Bang lich hen / dieu phoi vao cong
+│   ├── check-in/                     Trang hien thong tin khi quet QR vao cong
+│   ├── green-credits/                Diem xanh cua tai xe
+│   ├── rewards/                      Doi diem va vi uu dai
+│   ├── reports/                      Bao cao tac dong van hanh
+│   ├── settings/company/             Ho so cong ty/to chuc
+│   └── api/                          API routes
+│       ├── auth/                     Login, logout, register, me
+│       ├── appointments/             Tao lich, cap nhat status, token QR
+│       ├── check-in/                 API xac thuc token QR cho cong/operator
+│       ├── recommendation/           GreenSlot AI recommendation
+│       ├── green-credits/            Lich su diem xanh
+│       ├── rewards/                  Danh sach uu dai, redeem, vi voucher
+│       ├── reports/                  Dashboard/report data
+│       ├── vehicles/                 Danh sach xe theo role
+│       ├── ports/                    Danh sach cang active
+│       └── company/                  Ho so cong ty
+├── components/                       UI product components
+│   ├── DashboardLayout.tsx           Shell sau dang nhap, sidebar/mobile menu
+│   ├── MobileNavMenu.tsx             Menu mobile dang bam mo popup
+│   ├── DashboardOverview.tsx         Dashboard cards, lich gan day, reports quick view
+│   ├── BookingFlow.tsx               Form dat lich, slot recommendation, xac nhan
+│   ├── AppointmentsBoard.tsx         Lich hen, cap nhat status, QR popup
+│   ├── GreenCreditsPanel.tsx         Diem xanh va lich su diem
+│   ├── RewardsCatalog.tsx            Doi uu dai va vi voucher
+│   ├── ReportsView.tsx               Bao cao tac dong chi tiet
+│   ├── CompanySettings.tsx           Ho so cong ty, user, fleet
+│   └── ui/                           Component foundation tu shadcn-style
+├── lib/                              Logic dung chung
+│   ├── api.ts                        JSON response, validate field, same-origin guard
+│   ├── auth.ts                       JWT cookie auth, requireUser, role guard
+│   ├── prisma.ts                     Prisma client singleton
+│   ├── schedulingEngine.ts           Cham diem slot, risk, diem xanh, CO2
+│   ├── llmAdvisor.ts                 AI/LLM advisor voi fallback heuristic
+│   ├── portTrafficContext.ts         Traffic/cang context va cache ngan
+│   ├── checkInToken.ts               Tao/verify token QR co han
+│   └── rateLimit.ts                  Rate limit in-memory cho auth MVP
+├── prisma/                           Database layer
+│   ├── schema.prisma                 Schema PostgreSQL va enum chinh
+│   ├── migrations/                   Migration history
+│   └── seed.ts                       Demo seed co guard moi truong
+├── docs/rebuild-notes/               Ghi chu tien do, quyet dinh san pham, demo script
+├── proxy.ts                          Security headers cho request
+├── package.json                      Scripts va dependencies
+└── README.md                         Huong dan chay, deploy, cau truc
 ```
+
+Ghi chu: hien tai chua refactor thanh folder theo domain de tranh rui ro truoc demo. Neu can don dep sau, co the tach dan `components/booking`, `components/appointments`, `components/rewards`, `lib/security`, `lib/booking`.
 
 ## Checklist Release
 
