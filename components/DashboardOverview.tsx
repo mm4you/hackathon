@@ -112,7 +112,7 @@ export function DashboardOverview() {
           </div>
 
           <details className="mt-4 rounded-[1.2rem] border bg-muted/30 p-3 sm:mt-5 sm:p-5">
-             <summary className="cursor-pointer text-sm font-semibold">Slot đề xuất</summary>
+             <summary className="cursor-pointer list-none text-sm font-semibold [&::-webkit-details-marker]:hidden">Slot đề xuất</summary>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {report.bestGreenSlots.map((slot) => <SlotCard key={slot.id} slot={slot} />)}
               {!report.bestGreenSlots.length ? <div className="text-sm text-muted-foreground">Chưa có slot hôm nay.</div> : null}
@@ -124,7 +124,7 @@ export function DashboardOverview() {
         <Card className="rounded-[1.2rem] shadow-sm lg:rounded-[1.35rem]">
           <CardContent className="p-4 sm:p-5">
           <details>
-          <summary className="cursor-pointer text-sm font-semibold">Quy trình vận hành</summary>
+          <summary className="cursor-pointer list-none text-sm font-semibold [&::-webkit-details-marker]:hidden">Quy trình vận hành</summary>
           <div className="mt-3 grid gap-2 sm:gap-3">
             <Loop label="Đặt lịch" text="Hệ thống đề xuất khung giờ ít ùn tắc hơn." />
             <Loop label="Vào cổng" text={`Mục tiêu xử lý tại cổng: ${report.summary.gateProcessingTargetSeconds} giây.`} />
@@ -142,7 +142,7 @@ export function DashboardOverview() {
         </Panel>
         <Card className="gap-0 overflow-hidden rounded-[1.2rem] py-0 shadow-sm lg:rounded-[1.35rem]">
           <details>
-            <summary className="cursor-pointer border-b px-4 py-3 font-semibold sm:px-5 sm:py-4">Hoạt động gần đây</summary>
+            <summary className="cursor-pointer list-none border-b px-4 py-3 font-semibold sm:px-5 sm:py-4 [&::-webkit-details-marker]:hidden">Hoạt động gần đây</summary>
             <div className="divide-y">
               {report.recentActivities.map((item) => <ActivityRow key={item.id} activity={item} />)}
               {!report.recentActivities.length ? <Empty text="Chưa có hoạt động gần đây." /> : null}

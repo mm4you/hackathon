@@ -143,7 +143,7 @@ export function AppointmentsBoard({ currentUserRole }: { currentUserRole: Curren
               {canUpdateStatus ? <StatusTimeline status={appointment.status} /> : null}
 
               <details className="mt-3 rounded-2xl border bg-muted/20 p-3">
-                <summary className="cursor-pointer text-sm font-semibold">Chi tiết lịch hẹn</summary>
+                <summary className="cursor-pointer list-none text-sm font-semibold [&::-webkit-details-marker]:hidden">Chi tiết lịch hẹn</summary>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">{appointment.recommendationReason}</p>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
                   <Info label="Tài xế" value={appointment.driver.name} />

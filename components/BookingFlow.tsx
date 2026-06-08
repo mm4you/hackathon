@@ -205,7 +205,7 @@ export function BookingFlow() {
             </div>
 
             <details className="mt-3 rounded-2xl border bg-muted/20 p-3 sm:p-4">
-              <summary className="cursor-pointer text-sm font-semibold">Xem chi tiết AI và phương án khác</summary>
+              <summary className="cursor-pointer list-none text-sm font-semibold [&::-webkit-details-marker]:hidden">Xem chi tiết AI và phương án khác</summary>
               {aiDecision?.operatorNote ? <div className="mt-3 rounded-xl border bg-background p-3 text-sm leading-6 text-muted-foreground"><span className="font-semibold text-foreground">Operator:</span> {aiDecision.operatorNote}</div> : null}
               {alternativeSlots.length ? (
                 <div className="mt-3 grid gap-2">

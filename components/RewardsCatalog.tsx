@@ -85,7 +85,7 @@ export function RewardsCatalog() {
       </section>
 
       <details className="overflow-hidden rounded-[1.2rem] border bg-card shadow-sm lg:rounded-[1.35rem]">
-        <summary className="cursor-pointer list-none border-b px-4 py-3 sm:px-5 sm:py-4">
+        <summary className="cursor-pointer list-none border-b px-4 py-3 sm:px-5 sm:py-4 [&::-webkit-details-marker]:hidden">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="font-semibold">Ví ưu đãi của tôi</div>
@@ -140,7 +140,7 @@ export function RewardsCatalog() {
                 <div className="rounded-full border px-3 py-1 text-sm font-bold">{reward.pointsRequired}</div>
               </div>
               <details className="mt-3 rounded-2xl border bg-muted/20 p-3">
-                <summary className="cursor-pointer text-sm font-semibold">Chi tiết ưu đãi</summary>
+                <summary className="cursor-pointer list-none text-sm font-semibold [&::-webkit-details-marker]:hidden">Chi tiết ưu đãi</summary>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">{reward.description}</p>
               </details>
               <button disabled={!canRedeem || redeemingId === reward.id} onClick={() => redeem(reward.id)} className="mt-5 w-full rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:opacity-45">
@@ -153,7 +153,7 @@ export function RewardsCatalog() {
       </section>
 
       <details className="overflow-hidden rounded-[1.2rem] border bg-card shadow-sm lg:rounded-[1.35rem]">
-        <summary className="cursor-pointer border-b px-4 py-3 font-semibold sm:px-5 sm:py-4">Lịch sử đổi ưu đãi</summary>
+        <summary className="cursor-pointer list-none border-b px-4 py-3 font-semibold sm:px-5 sm:py-4 [&::-webkit-details-marker]:hidden">Lịch sử đổi ưu đãi</summary>
         <div className="divide-y">
           {redemptions.map((item) => (
             <div key={item.id} className="flex flex-col justify-between gap-3 px-5 py-4 sm:flex-row sm:items-center">

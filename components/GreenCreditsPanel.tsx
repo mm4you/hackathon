@@ -72,7 +72,7 @@ export function GreenCreditsPanel() {
       </section>
 
       <details className="rounded-[1.2rem] border bg-card p-4 shadow-sm sm:p-5 lg:rounded-[1.35rem]">
-        <summary className="cursor-pointer text-sm font-semibold">Cơ chế cộng điểm</summary>
+        <summary className="cursor-pointer list-none text-sm font-semibold [&::-webkit-details-marker]:hidden">Cơ chế cộng điểm</summary>
         <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-5">
           <Formula label="Hoàn thành" value="+25" />
           <Formula label="Ít chờ" value="+0-35" />

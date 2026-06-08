@@ -82,7 +82,7 @@ export function ReportsView() {
 
         <div className="rounded-[1.2rem] border bg-card p-4 shadow-sm sm:p-5 lg:rounded-[1.35rem]">
           <details>
-          <summary className="cursor-pointer text-sm font-semibold">Hướng mở rộng check-in</summary>
+          <summary className="cursor-pointer list-none text-sm font-semibold [&::-webkit-details-marker]:hidden">Hướng mở rộng check-in</summary>
           <div className="mt-3 grid gap-2 sm:gap-3">
             <Roadmap title="Hiện trạng" text="Tài xế có thể phải chờ lâu, xử lý giấy tờ thủ công và dễ sai dữ liệu." />
             <Roadmap title="V2 hiện tại" text="AI đặt hẹn chủ động, slot xanh, lịch hẹn và điểm xanh sau completed." />
@@ -93,7 +93,7 @@ export function ReportsView() {
       </section>
 
       <details className="rounded-[1.2rem] border bg-card p-4 shadow-sm lg:rounded-[1.35rem]">
-        <summary className="cursor-pointer text-sm font-semibold">Biểu đồ và bảng xếp hạng</summary>
+        <summary className="cursor-pointer list-none text-sm font-semibold [&::-webkit-details-marker]:hidden">Biểu đồ và bảng xếp hạng</summary>
       <section className="mt-3 grid gap-3 lg:grid-cols-3 lg:gap-5">
         <Panel title="Trạng thái lịch hẹn">
           {report.appointmentsByStatus.map((item) => <Bar key={item.status} label={item.status} value={item.count} total={Math.max(1, report.summary.totalAppointments)} />)}
