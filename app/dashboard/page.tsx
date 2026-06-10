@@ -15,7 +15,7 @@ export default async function DashboardPage() {
       currentUser={user}
       action={user?.role === "DRIVER" ? <Link href="/booking" className="rounded-2xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90">Đặt lịch</Link> : null}
     >
-      <DashboardOverview />
+      <DashboardOverview cacheKey={`reports-cache:${user?.role ?? "GUEST"}:${user?.id ?? "anonymous"}`} />
     </DashboardLayout>
   );
 }

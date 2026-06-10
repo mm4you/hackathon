@@ -1,5 +1,5 @@
 import { isSameOriginRequest, jsonData, jsonError, readJsonObject, stringField } from "@/lib/api";
-import { invalidateUserCache, requireUser } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import { invalidateCache } from "@/lib/dataCache";
 import { prisma } from "@/lib/prisma";
 
@@ -34,7 +34,6 @@ export async function POST(request: Request) {
       return created;
     });
 
-    invalidateUserCache(user.id);
     invalidateCache("redemptions:", "reports:");
     return jsonData(redemption, 201);
   } catch (error) {

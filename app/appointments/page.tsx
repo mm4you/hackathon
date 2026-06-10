@@ -10,7 +10,7 @@ export default async function AppointmentsPage() {
 
   return (
     <DashboardLayout title="Điều phối lịch hẹn" description={description} currentUser={user}>
-      <AppointmentsBoard currentUserRole={user?.role ?? "DRIVER"} />
+      <AppointmentsBoard currentUserRole={user?.role ?? "DRIVER"} currentUserId={user?.id ?? "anonymous"} />
     </DashboardLayout>
   );
 }

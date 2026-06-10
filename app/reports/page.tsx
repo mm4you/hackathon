@@ -12,7 +12,7 @@ export default async function ReportsPage() {
 
   return (
     <DashboardLayout title="Báo cáo tác động" description="Tổng hợp số lịch, thời gian chờ, CO2 tiết kiệm, điểm xanh và hiệu quả vận hành." currentUser={user}>
-      <ReportsView />
+      <ReportsView cacheKey={`reports-cache:${user.role}:${user.id}`} />
     </DashboardLayout>
   );
 }

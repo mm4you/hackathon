@@ -20,6 +20,7 @@ export default function LoginPage() {
     setError("");
 
     const form = new FormData(event.currentTarget);
+    clearClientCaches();
     const response = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -29,7 +30,9 @@ export default function LoginPage() {
     setLoading(false);
 
     if (!response.ok) return setError(json.error ?? "Không thể đăng nhập");
+    clearClientCaches();
     router.push("/dashboard");
+    router.refresh();
   }
 
   return (
@@ -47,6 +50,13 @@ export default function LoginPage() {
       </form>
     </AuthShell>
   );
+}
+
+function clearClientCaches() {
+  if (typeof window === "undefined") return;
+  for (const key of Object.keys(window.sessionStorage)) {
+    if (key.endsWith("-cache") || key.includes("-cache:")) window.sessionStorage.removeItem(key);
+  }
 }
 
 function AuthShell({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {

@@ -53,9 +53,9 @@ type TimeSlot = {
 
 type ApiResponse<T> = { data?: T; error?: string };
 
-export function DashboardOverview() {
-  const [report, setReport] = useState<ReportData | null>(() => readClientCache<ReportData>("reports-cache"));
-  const [loading, setLoading] = useState(() => !readClientCache<ReportData>("reports-cache"));
+export function DashboardOverview({ cacheKey }: { cacheKey: string }) {
+  const [report, setReport] = useState<ReportData | null>(() => readClientCache<ReportData>(cacheKey));
+  const [loading, setLoading] = useState(() => !readClientCache<ReportData>(cacheKey));
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export function DashboardOverview() {
       if (cancelled) return;
       setLoading(false);
       if (!response.ok) return setError(json.error ?? "Không tải được dashboard");
-      writeClientCache("reports-cache", json.data ?? null);
+      writeClientCache(cacheKey, json.data ?? null);
       setReport(json.data ?? null);
     }
     load().catch(() => {
@@ -78,7 +78,7 @@ export function DashboardOverview() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [cacheKey]);
 
   if (loading) return <div className="rounded-[1.5rem] border bg-card p-6 text-sm text-muted-foreground shadow-sm">Đang tải dashboard...</div>;
   if (error || !report) return <div className="rounded-[1.5rem] border border-destructive/30 bg-destructive/10 p-6 text-sm text-destructive">{error || "Không có dữ liệu dashboard"}</div>;
