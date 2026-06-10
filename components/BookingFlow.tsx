@@ -107,7 +107,7 @@ export function BookingFlow() {
     setAiDecision(null);
     setSelectedId("");
 
-    const response = await fetch("/api/recommendation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+    const response = await fetch("/api/recommendation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(withTimezone(form)) });
     const json = (await response.json()) as ApiResponse<{ recommendations: Recommendation[]; portTrafficContext?: PortTrafficContext; aiDecision?: AiDecision | null; message?: string }>;
     setLoading(false);
 
@@ -128,7 +128,7 @@ export function BookingFlow() {
     const response = await fetch("/api/appointments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, timeSlotId: selectedId }),
+      body: JSON.stringify({ ...withTimezone(form), timeSlotId: selectedId }),
     });
     const json = (await response.json()) as ApiResponse<unknown>;
     setConfirming(false);
@@ -274,6 +274,10 @@ function defaultPreferredTime() {
   const date = new Date();
   date.setHours(date.getHours() + 2, 0, 0, 0);
   return formatLocalInputDateTime(date);
+}
+
+function withTimezone<T extends { preferredTime: string }>(value: T) {
+  return { ...value, timezoneOffsetMinutes: new Date(value.preferredTime).getTimezoneOffset() };
 }
 
 function formatLocalInputDateTime(date: Date) {

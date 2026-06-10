@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     const optimizationPreference = stringField(body, "optimizationPreference");
     if (!vehicleId || !portId || !timeSlotId || !preferences.has(optimizationPreference)) return jsonError("Thiếu thông tin đặt lịch", 400);
 
-    const preferredTime = new Date(preferredTimeValue);
+    const preferredTime = parseLocalDateTime(preferredTimeValue, numberField(body, "timezoneOffsetMinutes"));
     if (Number.isNaN(preferredTime.getTime())) return jsonError("Thời gian mong muốn không hợp lệ", 400);
 
     const vehicle = await prisma.vehicle.findFirst({ where: { id: vehicleId, driverId: user.id }, select: { id: true, plateNumber: true } });
@@ -130,4 +130,16 @@ function bookingErrorResponse(code: BookingError["code"]) {
   if (code === "SLOT_NOT_FOUND") return jsonError("Không tìm thấy slot phù hợp", 404);
   if (code === "SLOT_INVALID") return jsonError("Slot không hợp lệ", 400);
   return jsonError("Slot đã đầy, vui lòng chọn khung giờ khác", 409);
+}
+
+function numberField(body: Record<string, unknown>, key: string) {
+  const value = body[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function parseLocalDateTime(value: string, timezoneOffsetMinutes: number) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
+  if (!match) return new Date(Number.NaN);
+  const [, year, month, day, hour, minute] = match;
+  return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), 0, 0) + timezoneOffsetMinutes * 60000);
 }

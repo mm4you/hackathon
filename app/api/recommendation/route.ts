@@ -36,7 +36,8 @@ export async function POST(request: Request) {
     const optimizationPreference = stringField(body, "optimizationPreference");
     if (!portId || !preferences.has(optimizationPreference)) return jsonError("Thiếu cảng hoặc mục tiêu tối ưu", 400);
 
-    const preferredTime = new Date(preferredTimeValue);
+    const timezoneOffsetMinutes = numberField(body, "timezoneOffsetMinutes");
+    const preferredTime = parseLocalDateTime(preferredTimeValue, timezoneOffsetMinutes);
     if (Number.isNaN(preferredTime.getTime())) return jsonError("Thời gian mong muốn không hợp lệ", 400);
 
     const cacheKey = `recommendation:${user.id}:${portId}:${preferredTime.toISOString()}:${optimizationPreference}`;
@@ -44,10 +45,10 @@ export async function POST(request: Request) {
       const port = await prisma.port.findFirst({ where: { id: portId, isActive: true }, select: { id: true, name: true, latitude: true, longitude: true } });
       if (!port) throw new RecommendationError("PORT_NOT_FOUND");
 
-      const dayStart = new Date(preferredTime);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(dayStart);
-      dayEnd.setDate(dayEnd.getDate() + 1);
+      const localParts = parseLocalDateTimeParts(preferredTimeValue);
+      if (!localParts) throw new RecommendationError("INVALID_TIME");
+      const dayStart = localDateTimeToDate(localParts.year, localParts.month, localParts.day, 0, 0, timezoneOffsetMinutes);
+      const dayEnd = localDateTimeToDate(localParts.year, localParts.month, localParts.day + 1, 0, 0, timezoneOffsetMinutes);
 
       const existingDaySlots = await prisma.timeSlot.findMany({ where: { portId, startTime: { gte: dayStart, lt: dayEnd } }, select: { capacity: true, bookedCount: true } }) as { capacity: number; bookedCount: number }[];
       const averageUtilizationRate = existingDaySlots.length ? existingDaySlots.reduce((sum, slot) => sum + (slot.capacity ? slot.bookedCount / slot.capacity : 1), 0) / existingDaySlots.length : 0.45;
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
         averageUtilizationRate,
       });
 
-      await syncSlotsForDay(portId, dayStart, portTrafficContext);
+      await syncSlotsForDay(portId, localParts, timezoneOffsetMinutes, portTrafficContext);
 
       const slots = (await prisma.timeSlot.findMany({
         where: { portId, startTime: { gte: dayStart, lt: dayEnd } },
@@ -89,20 +90,21 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return jsonError("Chưa đăng nhập", 401);
     if (error instanceof RecommendationError && error.code === "PORT_NOT_FOUND") return jsonError("Không tìm thấy cảng đang hoạt động", 404);
+    if (error instanceof RecommendationError && error.code === "INVALID_TIME") return jsonError("Thời gian mong muốn không hợp lệ", 400);
     console.error("Recommendation API failed", error);
     return jsonError("Không tạo được gợi ý khung giờ", 500);
   }
 }
 
 class RecommendationError extends Error {
-  constructor(public code: "PORT_NOT_FOUND") {
+  constructor(public code: "PORT_NOT_FOUND" | "INVALID_TIME") {
     super(code);
   }
 }
 
-async function syncSlotsForDay(portId: string, dayStart: Date, context: PortTrafficContext) {
-  const dayEnd = new Date(dayStart);
-  dayEnd.setDate(dayEnd.getDate() + 1);
+async function syncSlotsForDay(portId: string, localParts: LocalDateTimeParts, timezoneOffsetMinutes: number, context: PortTrafficContext) {
+  const dayStart = localDateTimeToDate(localParts.year, localParts.month, localParts.day, 0, 0, timezoneOffsetMinutes);
+  const dayEnd = localDateTimeToDate(localParts.year, localParts.month, localParts.day + 1, 0, 0, timezoneOffsetMinutes);
 
   const existingSlots = await prisma.timeSlot.findMany({
     where: { portId, startTime: { gte: dayStart, lt: dayEnd } },
@@ -110,7 +112,7 @@ async function syncSlotsForDay(portId: string, dayStart: Date, context: PortTraf
   }) as ExistingSlot[];
 
   const existingStartTimes = new Set(existingSlots.map((slot) => new Date(slot.startTime).getTime()));
-  const missingSlots = buildDesiredSlots(dayStart, portId, context).filter((slot) => !existingStartTimes.has(slot.startTime.getTime()));
+  const missingSlots = buildDesiredSlots(localParts, timezoneOffsetMinutes, portId, context).filter((slot) => !existingStartTimes.has(slot.startTime.getTime()));
   if (missingSlots.length) await prisma.timeSlot.createMany({ data: missingSlots, skipDuplicates: true });
 
   if (existingSlots.length) {
@@ -131,13 +133,12 @@ async function syncSlotsForDay(portId: string, dayStart: Date, context: PortTraf
     return;
   }
 
-  if (!missingSlots.length) await prisma.timeSlot.createMany({ data: buildDesiredSlots(dayStart, portId, context), skipDuplicates: true });
+  if (!missingSlots.length) await prisma.timeSlot.createMany({ data: buildDesiredSlots(localParts, timezoneOffsetMinutes, portId, context), skipDuplicates: true });
 }
 
-function buildDesiredSlots(dayStart: Date, portId: string, context: PortTrafficContext) {
+function buildDesiredSlots(localParts: LocalDateTimeParts, timezoneOffsetMinutes: number, portId: string, context: PortTrafficContext) {
   return SLOT_STARTS.map((hour) => {
-    const startTime = new Date(dayStart);
-    startTime.setHours(hour, 0, 0, 0);
+    const startTime = localDateTimeToDate(localParts.year, localParts.month, localParts.day, hour, 0, timezoneOffsetMinutes);
     const endTime = new Date(startTime);
     endTime.setMinutes(endTime.getMinutes() + SLOT_DURATION_MINUTES);
     const capacity = capacityForHour(hour);
@@ -153,6 +154,30 @@ function buildDesiredSlots(dayStart: Date, portId: string, context: PortTrafficC
       greenBonus: profile.greenBonus,
     };
   });
+}
+
+type LocalDateTimeParts = { year: number; month: number; day: number; hour: number; minute: number };
+
+function numberField(body: Record<string, unknown>, key: string) {
+  const value = body[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function parseLocalDateTime(value: string, timezoneOffsetMinutes: number) {
+  const parts = parseLocalDateTimeParts(value);
+  if (!parts) return new Date(Number.NaN);
+  return localDateTimeToDate(parts.year, parts.month, parts.day, parts.hour, parts.minute, timezoneOffsetMinutes);
+}
+
+function parseLocalDateTimeParts(value: string): LocalDateTimeParts | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
+  if (!match) return null;
+  const [, year, month, day, hour, minute] = match;
+  return { year: Number(year), month: Number(month), day: Number(day), hour: Number(hour), minute: Number(minute) };
+}
+
+function localDateTimeToDate(year: number, month: number, day: number, hour: number, minute: number, timezoneOffsetMinutes: number) {
+  return new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0) + timezoneOffsetMinutes * 60000);
 }
 
 function capacityForHour(hour: number) {
