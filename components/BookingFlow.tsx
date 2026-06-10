@@ -299,11 +299,12 @@ function formatSlotTimeRange(slot: { startTime: string; endTime: string }) {
 
 function formatHour(value: Date) {
   const minutes = value.getMinutes();
-  return minutes ? `${value.getHours()}h${String(minutes).padStart(2, "0")}` : `${value.getHours()}h`;
+  const hour = String(value.getHours()).padStart(2, "0");
+  return minutes ? `${hour}h${String(minutes).padStart(2, "0")}` : `${hour}h`;
 }
 
-function isPastSlot(slot: { startTime: string }) {
-  return new Date(slot.startTime).getTime() <= Date.now();
+function isPastSlot(slot: { endTime: string }) {
+  return new Date(slot.endTime).getTime() <= Date.now();
 }
 
 function Select({ label, value, onChange, options, empty = "Không có dữ liệu" }: { label: string; value: string; onChange: (value: string) => void; options: string[][]; empty?: string }) {

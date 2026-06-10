@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       })) as SlotInput | null;
       if (!slot) throw new BookingError("SLOT_NOT_FOUND");
       if (new Date(slot.endTime).getTime() <= new Date(slot.startTime).getTime()) throw new BookingError("SLOT_INVALID");
-      if (new Date(slot.startTime).getTime() <= Date.now()) throw new BookingError("SLOT_PAST");
+      if (new Date(slot.endTime).getTime() <= Date.now()) throw new BookingError("SLOT_PAST");
       if (slot.bookedCount >= slot.capacity) throw new BookingError("SLOT_FULL");
 
       const increment = await tx.timeSlot.updateMany({ where: { id: timeSlotId, bookedCount: { lt: slot.capacity } }, data: { bookedCount: { increment: 1 } } });
