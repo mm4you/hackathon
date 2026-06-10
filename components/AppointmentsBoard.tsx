@@ -92,7 +92,7 @@ export function AppointmentsBoard({ currentUserRole }: { currentUserRole: Curren
 
   const activeCount = appointments.filter((item) => item.status === "PENDING" || item.status === "COMING").length;
   const completedCount = appointments.filter((item) => item.status === "COMPLETED").length;
-  const totalCo2 = appointments.reduce((sum, item) => sum + item.co2SavedKg, 0);
+  const totalCo2 = appointments.filter((item) => item.status === "COMPLETED").reduce((sum, item) => sum + item.co2SavedKg, 0);
   const canUpdateStatus = currentUserRole === "ADMIN" || currentUserRole === "OPERATOR";
   const canShowQr = currentUserRole === "DRIVER";
 

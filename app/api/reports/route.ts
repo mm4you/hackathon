@@ -84,7 +84,7 @@ async function buildReport(user: { id: string; role: "ADMIN" | "OPERATOR" | "DRI
     const completedAppointments = appointments.filter((item) => item.status === "COMPLETED");
     const todayAppointments = appointments.filter((item) => isSameDay(new Date(item.createdAt), todayStart));
     const averageWaitMinutes = average(appointments.map((item) => item.estimatedWaitMinutes));
-    const totalCo2SavedKg = sum(appointments.map((item) => item.co2SavedKg));
+    const totalCo2SavedKg = sum(completedAppointments.map((item) => item.co2SavedKg));
     const totalGreenPointsIssued = greenPointsAggregate._sum?.points ?? 0;
     const lowSlots = slots.filter((slot) => slot.congestionLevel === "LOW").length;
     const mediumSlots = slots.filter((slot) => slot.congestionLevel === "MEDIUM").length;
@@ -118,7 +118,7 @@ async function buildReport(user: { id: string; role: "ADMIN" | "OPERATOR" | "DRI
       impactMetrics: [
         { label: "Giảm công việc thủ công", value: `${manualMinutesSaved} phút`, note: "Mục tiêu: rút ngắn xử lý giấy tờ và check-in tại cổng." },
         { label: "Cải thiện tốc độ giao hàng", value: `${Math.round(averageWaitMinutes)} phút chờ TB`, note: "Mục tiêu PM: kéo thời gian chờ về dưới 30 phút." },
-        { label: "Giảm phát thải tại cổng", value: `${Number(totalCo2SavedKg.toFixed(1))} kg CO2`, note: "Giảm xe nổ máy chờ ở khu vực cảng/kho bãi." },
+        { label: "Giảm phát thải tại cổng", value: `${Number(totalCo2SavedKg.toFixed(1))} kg CO2`, note: "Chỉ tính các lịch đã hoàn thành để phản ánh CO2 saved thực tế." },
         { label: "Slot ít ùn tắc", value: `${greenSlotRate}% slot tốt`, note: "Phân bổ xe chủ động khỏi giờ cao điểm." },
         { label: "Chi phí vận hành tiết kiệm", value: `${costSavingEstimateVnd.toLocaleString("vi-VN")}đ`, note: "Ước tính từ giảm thời gian chờ và xử lý cổng." },
       ],
