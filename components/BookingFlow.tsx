@@ -114,11 +114,14 @@ export function BookingFlow() {
     if (!response.ok) return setError(json.error ?? "Không tạo được gợi ý khung giờ");
     const nextRecommendations = json.data?.recommendations ?? [];
     const nextDecision = json.data?.aiDecision ?? null;
+    const firstFutureSlot = nextRecommendations.find((item) => !isPastSlot(item));
+    const decisionSlot = nextRecommendations.find((item) => item.id === nextDecision?.bestSlotId && !isPastSlot(item));
     setRecommendations(nextRecommendations);
     setPortTrafficContext(json.data?.portTrafficContext ?? null);
     setAiDecision(nextDecision);
-    setSelectedId(nextDecision?.bestSlotId ?? nextRecommendations[0]?.id ?? "");
+    setSelectedId(decisionSlot?.id ?? firstFutureSlot?.id ?? "");
     if (!nextRecommendations.length) setError(json.data?.message ?? "Không còn slot khả dụng trong ngày đã chọn");
+    if (nextRecommendations.length && !firstFutureSlot) setError("Các khung giờ phù hợp đã qua, vui lòng chọn thời gian khác.");
   }
 
   async function confirmBooking() {
@@ -137,7 +140,7 @@ export function BookingFlow() {
   }
 
   const selected = recommendations.find((item) => item.id === selectedId) ?? null;
-  const selectedAdvice = selected ? `${formatDateTime(selected.startTime)} là khung giờ đang chọn: ${selected.recommendedAction.toLowerCase()} Chờ ${selected.estimatedWaitMinutes} phút, tải ${selected.utilizationRate}%.` : "";
+  const selectedAdvice = selected ? `${formatSlotTimeRange(selected)} là khung giờ đang chọn: ${selected.recommendedAction.toLowerCase()} Chờ ${selected.estimatedWaitMinutes} phút, tải ${selected.utilizationRate}%.` : "";
   const selectedRiskSummary = selected ? (aiDecision?.bestSlotId === selected.id ? aiDecision.riskSummary : selected.trafficSignal.message) : "";
   const alternativeSlots = selected ? recommendations.filter((item) => item.id !== selected.id).slice(0, 10) : [];
 
@@ -176,7 +179,7 @@ export function BookingFlow() {
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">Bước 2 - Khuyến nghị</div>
                 <CardTitle className="mt-2 text-xl font-semibold tracking-[-0.04em] sm:text-2xl">{selected.fitLabel}</CardTitle>
-                <CardDescription className="mt-2 leading-6">{formatDateTime(selected.startTime)} - {formatDateTime(selected.endTime)}</CardDescription>
+                <CardDescription className="mt-2 leading-6">{formatSlotTimeRange(selected)}</CardDescription>
               </div>
               <RiskBadge risk={selected.riskLevel}>{selected.trafficSignal.label}</RiskBadge>
             </div>
@@ -210,9 +213,9 @@ export function BookingFlow() {
               {alternativeSlots.length ? (
                 <div className="mt-3 grid max-h-[22rem] gap-2 overflow-y-auto pr-1">
                   {alternativeSlots.map((item) => (
-                    <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} className="rounded-xl border bg-background p-3 text-left text-sm transition hover:bg-muted/40">
-                      <div className="font-semibold">{alternativeLabel(item.riskLevel)}</div>
-                      <div className="mt-1 leading-6 text-muted-foreground">{formatDateTime(item.startTime)}: chờ {item.estimatedWaitMinutes} phút, tải {item.utilizationRate}%, rủi ro {riskLabel(item.riskLevel)}.</div>
+                    <button key={item.id} type="button" disabled={isPastSlot(item)} onClick={() => setSelectedId(item.id)} className={`rounded-xl border bg-background p-3 text-left text-sm transition hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50 ${isPastSlot(item) ? "line-through" : ""}`}>
+                      <div className="font-semibold">{alternativeLabel(item.riskLevel)}{isPastSlot(item) ? " - đã qua" : ""}</div>
+                      <div className="mt-1 leading-6 text-muted-foreground">{formatSlotTimeRange(item)}: chờ {item.estimatedWaitMinutes} phút, tải {item.utilizationRate}%, rủi ro {riskLabel(item.riskLevel)}.</div>
                     </button>
                   ))}
                 </div>
@@ -242,7 +245,7 @@ export function BookingFlow() {
               <div className="mb-3 text-sm font-semibold">Bước 3 - Xác nhận slot</div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <UiSelect value={selectedId} onChange={(event) => setSelectedId(event.target.value)} className="h-12 w-full min-w-0 rounded-2xl font-semibold sm:h-11 sm:flex-1">
-                {recommendations.map((item) => <option key={item.id} value={item.id}>#{item.rank} {formatDateTime(item.startTime)} - {item.fitLabel}</option>)}
+                {recommendations.map((item) => <option key={item.id} value={item.id} disabled={isPastSlot(item)}>#{item.rank} {formatSlotTimeRange(item)} - {item.fitLabel}{isPastSlot(item) ? " - đã qua" : ""}</option>)}
               </UiSelect>
               <Button disabled={confirming} onClick={confirmBooking} className="h-12 w-full rounded-2xl px-5 font-semibold sm:h-11 sm:w-auto">
                 {confirming ? "Đang giữ slot..." : "Xác nhận đặt lịch"}
@@ -285,8 +288,22 @@ function formatLocalInputDateTime(date: Date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }).format(new Date(value));
+function formatSlotTimeRange(slot: { startTime: string; endTime: string }) {
+  const start = new Date(slot.startTime);
+  const end = new Date(slot.endTime);
+  const startText = formatHour(start);
+  const endText = formatHour(end);
+  const dateText = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit" }).format(start);
+  return `${startText} - ${endText}, ${dateText}`;
+}
+
+function formatHour(value: Date) {
+  const minutes = value.getMinutes();
+  return minutes ? `${value.getHours()}h${String(minutes).padStart(2, "0")}` : `${value.getHours()}h`;
+}
+
+function isPastSlot(slot: { startTime: string }) {
+  return new Date(slot.startTime).getTime() <= Date.now();
 }
 
 function Select({ label, value, onChange, options, empty = "Không có dữ liệu" }: { label: string; value: string; onChange: (value: string) => void; options: string[][]; empty?: string }) {

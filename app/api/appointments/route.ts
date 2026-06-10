@@ -82,6 +82,7 @@ export async function POST(request: Request) {
       })) as SlotInput | null;
       if (!slot) throw new BookingError("SLOT_NOT_FOUND");
       if (new Date(slot.endTime).getTime() <= new Date(slot.startTime).getTime()) throw new BookingError("SLOT_INVALID");
+      if (new Date(slot.startTime).getTime() <= Date.now()) throw new BookingError("SLOT_PAST");
       if (slot.bookedCount >= slot.capacity) throw new BookingError("SLOT_FULL");
 
       const increment = await tx.timeSlot.updateMany({ where: { id: timeSlotId, bookedCount: { lt: slot.capacity } }, data: { bookedCount: { increment: 1 } } });
@@ -121,7 +122,7 @@ export async function POST(request: Request) {
 }
 
 class BookingError extends Error {
-  constructor(public code: "SLOT_NOT_FOUND" | "SLOT_INVALID" | "SLOT_FULL") {
+  constructor(public code: "SLOT_NOT_FOUND" | "SLOT_INVALID" | "SLOT_PAST" | "SLOT_FULL") {
     super(code);
   }
 }
@@ -129,6 +130,7 @@ class BookingError extends Error {
 function bookingErrorResponse(code: BookingError["code"]) {
   if (code === "SLOT_NOT_FOUND") return jsonError("Không tìm thấy slot phù hợp", 404);
   if (code === "SLOT_INVALID") return jsonError("Slot không hợp lệ", 400);
+  if (code === "SLOT_PAST") return jsonError("Khung giờ này đã qua, vui lòng chọn slot khác", 400);
   return jsonError("Slot đã đầy, vui lòng chọn khung giờ khác", 409);
 }
 
